@@ -1,0 +1,126 @@
+name: CI
+
+# Public e-ink CI. This workflow is deliberately hermetic: it references no
+# WeRead credentials and performs no live network probes, so a fork pull request
+# runs exactly the same gate as a same-repo push and no account is ever touched.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # node:sqlite is flagged before 22.13, so test that exact floor and current Node.
+        node-version: ["22.13.0", "24"]
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci --engine-strict
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:cov
+      - run: npm pack --dry-run
+
+  install-smoke:
+    name: Install smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --engine-strict
+      - name: Run tests on macOS and Windows
+        if: runner.os != 'Linux'
+        run: npm test
+      # The e2e suites pack a tarball, install it, and drive the installed bin and a
+      # multi-process SQLite library. Everything they exercise -- path separators, the
+      # generated .cmd bin shim, file locking -- is where platforms actually differ, so
+      # running them only on Linux left the cases most likely to break unverified.
+      - name: Run e2e suites on macOS and Windows
+        if: runner.os != 'Linux'
+        run: npm run test:e2e
+        env:
+          npm_config_engine_strict: "true"
+      - name: Pack and globally install the CLI
+        shell: node {0}
+        run: |
+          const { execFileSync } = require("node:child_process");
+          const { resolve } = require("node:path");
+          const run = (command, args, options = {}) =>
+            execFileSync(command, args, { ...options, shell: process.platform === "win32" });
+          const tarball = run("npm", ["pack", "--silent"], { encoding: "utf8" })
+            .trim().split(/\r?\n/).at(-1);
+          run("npm", ["install", "--global", "--engine-strict", "--no-audit", "--no-fund", resolve(tarball)],
+            { stdio: "inherit" });
+          run("weread", ["--help"], { stdio: "inherit" });
+
+  pack-smoke:
+    # Packs the real tarball, installs it into a throwaway prefix, imports all three
+    # published exports, runs the bin, and drives real commands against the installed
+    # build. Catches files-allowlist, subpath-export, and bin regressions that the unit
+    # `release.test.ts` (string inspection) and `npm pack --dry-run` (file listing)
+    # cannot. Kept out of the unit-test job because it builds and installs a tarball
+    # end to end.
+    #
+    # Runs the WHOLE test/e2e directory, not just pack-smoke. `npm test` covers only
+    # test/unit and test/integration, so anything asserted solely under test/e2e is
+    # unverified everywhere else until a release candidate runs — which is long after
+    # a mistake is cheap to fix.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --engine-strict
+      - run: npm run test:e2e
+        env:
+          npm_config_engine_strict: "true"
+      - name: Pack the Node 22 runtime-floor fixture
+        run: |
+          mkdir -p "$RUNNER_TEMP/runtime-floor"
+          npm pack --silent --pack-destination "$RUNNER_TEMP/runtime-floor" >/dev/null
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.13.0
+      - name: Verify the Node 22 packed-runtime floor
+        run: |
+          set -euo pipefail
+          tarballs=("$RUNNER_TEMP/runtime-floor/"*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          test -f "${tarballs[0]}"
+          consumer="$RUNNER_TEMP/runtime-floor/consumer"
+          mkdir "$consumer"
+          cd "$consumer"
+          npm init --yes >/dev/null
+          npm install --engine-strict --ignore-scripts --no-audit --no-fund "${tarballs[0]}"
+          node --input-type=module --eval \
+            'await Promise.all(["weread-omni", "weread-omni/cli"].map((name) => import(name)))'
+          ./node_modules/.bin/weread --help >/dev/null

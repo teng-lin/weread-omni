@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+# test/api-surface.snapshot.md is generated wholesale from the built declarations. Two branches that
+# each regenerate it against their own tree produce edits in different regions of the file, which git
+# will text-merge cleanly into a snapshot that matches NEITHER build — a silent wrong answer in the
+# one file whose whole job is to be authoritative. `-merge` turns that into an ordinary conflict.
+#
+# To resolve a conflict here, do not hand-edit: rebuild and regenerate.
+#
+#     npm run build && npm run api-surface:update
+#
+# (api-surface:update throws after rewriting the file — that is success, not failure.)
+test/api-surface.snapshot.md -merge

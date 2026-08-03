@@ -1,0 +1,4 @@
+interface:
+  display_name: "WeRead"
+  short_description: "Search, read, and manage WeRead through its JSON CLI"
+  default_prompt: "Use $weread to search WeRead and inspect my reading data as structured JSON."

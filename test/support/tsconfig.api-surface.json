@@ -1,0 +1,15 @@
+{
+  // Project used only by test/support/api-surface.ts to load the *built* declarations.
+  // It deliberately points at dist/ rather than src/: the snapshot must describe what
+  // consumers resolve through the package `exports` map, not what the source happens to say.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "files": ["../../dist/index.d.ts", "../../dist/cli.d.ts", "../../dist/plugin.d.ts"]
+}

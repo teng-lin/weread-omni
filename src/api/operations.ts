@@ -1,0 +1,23 @@
+export const PUBLIC_OPERATIONS = {
+  search: ["books", "suggest"],
+  book: ["info", "detail", "chapters", "progress"],
+  shelf: ["sync", "add", "delete", "pin", "setPrivate", "markFinished", "markReading"],
+  publicAccounts: ["subscriptions", "articles", "resolveArticle", "paidContent", "subscribe", "unsubscribe"],
+  notes: [
+    "notebooks",
+    "recent",
+    "bookmarks",
+    "mine",
+    "best",
+    "readReviews",
+    "underlines",
+    "addBookmark",
+    "updateBookmark",
+    "removeBookmark",
+  ],
+  review: ["list", "single", "add", "edit", "delete"],
+  readData: ["detail"],
+  discover: ["recommend", "similar"],
+  ai: ["askBook", "suggest"],
+  import: ["book"],
+} as const;

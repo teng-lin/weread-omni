@@ -1,0 +1,146 @@
+name: Release candidate
+
+# Builds ONE retained tarball from ONE exact commit and hands it to release.yml by
+# value, not by recency. Everything the publish workflow needs to re-identify this
+# build — commit SHA, this run's ID, the artifact name, and the tarball digest — is
+# embedded in the artifact itself, so a later "latest successful run" lookup can
+# never substitute a different build.
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Full 40-character lowercase commit SHA to audit, build, and retain
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    env:
+      CANDIDATE_COMMIT: ${{ inputs.commit }}
+      ARTIFACT_NAME: weread-omni-candidate-${{ inputs.commit }}
+
+    steps:
+      - name: Validate the requested commit SHA
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$CANDIDATE_COMMIT" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "commit must be a full lowercase 40-character SHA" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.commit }}
+          persist-credentials: false
+
+      - name: Prove the checkout is exactly the requested commit
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_COMMIT"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.14.0
+          cache: npm
+
+      - run: npm install -g "npm@11.15.0"
+      - run: npm ci
+
+      # In-repo release gate. `npm test` includes test/unit/release.test.ts, which
+      # enforces the packaging manifest and the safety properties of release.yml.
+      # The E2E suites run later against this job's one retained tarball.
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:cov
+
+      - name: Build the retained tarball (once)
+        run: npm pack --json --silent > pack-metadata.json
+
+      - name: Record and verify the retained package metadata
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/candidate-metadata.mjs" <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { createHash } from "node:crypto";
+          import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+
+          const [entry, ...extra] = JSON.parse(readFileSync("pack-metadata.json", "utf8"));
+          if (!entry || typeof entry.filename !== "string") {
+            throw new Error("pack metadata did not name a tarball");
+          }
+          if (extra.length > 0) {
+            throw new Error("pack metadata described more than one tarball");
+          }
+
+          const source = JSON.parse(readFileSync("package.json", "utf8"));
+          const packed = JSON.parse(
+            execFileSync("tar", ["-xOf", entry.filename, "package/package.json"], { encoding: "utf8" }),
+          );
+          const changelog = readFileSync("CHANGELOG.md", "utf8");
+          if (source.name !== "weread-omni") {
+            throw new Error(`source package name is ${source.name}`);
+          }
+          if (entry.name !== source.name || packed.name !== source.name) {
+            throw new Error("packed package name disagrees with the source manifest");
+          }
+          if (entry.version !== source.version || packed.version !== source.version) {
+            throw new Error("packed package version disagrees with the source manifest");
+          }
+          const changelogVersion = source.version.replace(/-(?:alpha|beta|rc)\.[1-9]\d*$/, "");
+          const unreleased = changelog.match(/^## \[Unreleased\][ \t]*\r?\n([\s\S]*?)(?=^## \[)/m);
+          if (
+            !unreleased ||
+            unreleased.index !== changelog.search(/^## \[/m) ||
+            unreleased[1].trim() !== ""
+          ) {
+            throw new Error("CHANGELOG.md must begin with an empty [Unreleased] section");
+          }
+          if (!changelog.includes(`## [${changelogVersion}]`)) {
+            throw new Error(`CHANGELOG.md has no ${changelogVersion} release entry`);
+          }
+
+          const digest = createHash("sha512").update(readFileSync(entry.filename)).digest();
+          const metadata = {
+            artifactName: process.env.ARTIFACT_NAME,
+            commit: process.env.CANDIDATE_COMMIT,
+            name: source.name,
+            runId: process.env.GITHUB_RUN_ID,
+            tarball: entry.filename,
+            version: source.version,
+            sha512: digest.toString("hex"),
+            sri: `sha512-${digest.toString("base64")}`,
+          };
+          writeFileSync("candidate-metadata.json", `${JSON.stringify(metadata, null, 2)}\n`);
+          appendFileSync(process.env.GITHUB_ENV, `TARBALL=${entry.filename}\n`);
+          NODE
+          node "$RUNNER_TEMP/candidate-metadata.mjs"
+          cat candidate-metadata.json
+
+      - name: Test the retained tarball as a consumer
+        run: npm run test:e2e
+        env:
+          WEREAD_PACKED_TARBALL: ${{ env.TARBALL }}
+
+      - name: Recheck the retained tarball digest
+        run: |
+          set -euo pipefail
+          test "$(sha512sum "$TARBALL" | cut -d ' ' -f1)" = "$(jq -r .sha512 candidate-metadata.json)"
+
+      # Exactly one artifact, named deterministically after the input commit. v4
+      # refuses to overwrite an existing artifact of the same name, so a re-run
+      # cannot silently replace an already-handed-off candidate.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            ${{ env.TARBALL }}
+            pack-metadata.json
+            candidate-metadata.json
+          if-no-files-found: error
+          retention-days: 90

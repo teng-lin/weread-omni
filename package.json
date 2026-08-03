@@ -1,0 +1,109 @@
+{
+  "name": "weread-omni",
+  "version": "0.1.0",
+  "description": "Everything the official WeRead (微信读书 / WeChat Reading) Agent Skill does — plus public accounts, RSS/Atom/JSON feeds, book imports, WeRead AI, and write access to your highlights and shelf. One canonical surface of 40 operations through an agent skill, TypeScript SDK, and CLI.",
+  "keywords": [
+    "weread",
+    "微信读书",
+    "wechat-reading",
+    "weread-skill",
+    "agent",
+    "agent-skill",
+    "claude-code",
+    "codex",
+    "sdk",
+    "cli",
+    "ai-agent",
+    "claude",
+    "ebook",
+    "epub",
+    "rss",
+    "typescript"
+  ],
+  "homepage": "https://github.com/teng-lin/weread-omni#readme",
+  "bugs": "https://github.com/teng-lin/weread-omni/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teng-lin/weread-omni.git"
+  },
+  "license": "MIT",
+  "author": "Teng Lin",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
+    }
+  },
+  "bin": {
+    "weread": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "!docs/plans",
+    "!docs/api-design-review-*.md",
+    "skills",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "clean": "node --eval \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "prepack": "npm run build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest run test/unit test/integration",
+    "test:unit": "vitest run test/unit",
+    "test:integration": "vitest run test/integration",
+    "test:cassette": "vitest run test/integration/live-api-cassette.test.ts --no-file-parallelism",
+    "test:e2e": "vitest run test/e2e --no-file-parallelism",
+    "test:live": "vitest run test/live/read-only.test.ts",
+    "test:live:mutation": "vitest run test/live/public-account-mutation.test.ts",
+    "test:cov": "vitest run --coverage test/unit test/integration",
+    "api-surface:update": "UPDATE_API_SNAPSHOT=1 vitest run test/integration/api-surface.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@teng-lin/agent-fetch": "^0.1.6",
+    "@types/node": "^22.13.0",
+    "commander": "^14.0.3",
+    "cos-nodejs-sdk-v5": "^3.0.0",
+    "feed": "^6.0.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "overrides": {
+    "@hono/node-server": "^2.0.5",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "nock": "^14.0.16",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

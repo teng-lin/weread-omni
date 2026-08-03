@@ -1,0 +1,207 @@
+name: Release
+
+# Manual publish of a candidate that release-candidate.yml already built.
+#
+# Safety contract:
+#   * every identifying field is a required input — the run is addressed by ID,
+#     never by "latest";
+#   * the candidate run must exist, be complete, be successful, and be a
+#     release-candidate run for the same commit;
+#   * the tag must resolve to that same commit;
+#   * the artifact's own embedded metadata must agree with every input;
+#   * the retained .tgz is verified against the expected SHA-512 and is the exact
+#     file handed to npm. This workflow never rebuilds a tarball and never
+#     publishes the working directory.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag that must already point at the candidate commit
+        required: true
+        type: string
+      candidate_run_id:
+        description: Numeric run ID of the release-candidate workflow that produced the artifact
+        required: true
+        type: string
+      artifact_name:
+        description: Exact candidate artifact name (weread-omni-candidate-<commit>)
+        required: true
+        type: string
+      commit:
+        description: Full 40-character lowercase commit SHA the candidate was built from
+        required: true
+        type: string
+      expected_sha512:
+        description: Expected tarball digest as a SHA-512 SRI string (sha512-<base64>)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # `workflow_dispatch` is available to anyone with write access, so the workflow's own
+    # input validation is not an authorization boundary. Configure required reviewers on the
+    # `npm-publish` environment in repository settings and hold NPM_TOKEN there: a dispatch
+    # then blocks pending approval instead of publishing.
+    environment: npm-publish
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+      ARTIFACT_NAME: ${{ inputs.artifact_name }}
+      CANDIDATE_COMMIT: ${{ inputs.commit }}
+      EXPECTED_SRI: ${{ inputs.expected_sha512 }}
+      CANDIDATE_WORKFLOW: .github/workflows/release-candidate.yml
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Validate the handoff input shapes
+        run: |
+          set -euo pipefail
+          printf '%s' "$CANDIDATE_COMMIT" | grep -Eq '^[0-9a-f]{40}$' \
+            || { echo "commit must be a full lowercase 40-character SHA" >&2; exit 1; }
+          printf '%s' "$CANDIDATE_RUN_ID" | grep -Eq '^[0-9]+$' \
+            || { echo "candidate_run_id must be numeric" >&2; exit 1; }
+          printf '%s' "$EXPECTED_SRI" | grep -Eq '^sha512-[A-Za-z0-9+/]+={0,2}$' \
+            || { echo "expected_sha512 must be a sha512 SRI string" >&2; exit 1; }
+          printf '%s' "$RELEASE_TAG" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.([1-9][0-9]*))?$' \
+            || { echo "tag must be vMAJOR.MINOR.PATCH or a numbered alpha, beta, or rc" >&2; exit 1; }
+          test "$ARTIFACT_NAME" = "weread-omni-candidate-$CANDIDATE_COMMIT" \
+            || { echo "artifact_name is not the deterministic name for this commit" >&2; exit 1; }
+          case "$RELEASE_TAG" in
+            *-alpha.*) npm_dist_tag=alpha ;;
+            *-beta.*) npm_dist_tag=beta ;;
+            *-rc.*) npm_dist_tag=rc ;;
+            *) npm_dist_tag=latest ;;
+          esac
+          echo "NPM_DIST_TAG=$npm_dist_tag" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prove the tag points at the candidate commit
+        run: |
+          set -euo pipefail
+          test "$(git rev-list -n 1 "refs/tags/$RELEASE_TAG")" = "$CANDIDATE_COMMIT" \
+            || { echo "tag $RELEASE_TAG does not resolve to $CANDIDATE_COMMIT" >&2; exit 1; }
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_COMMIT"
+
+      - name: Require a successful candidate run for this exact commit
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CANDIDATE_RUN_ID" > candidate-run.json
+          test "$(jq -r .status candidate-run.json)" = "completed" \
+            || { echo "candidate run $CANDIDATE_RUN_ID is not completed" >&2; exit 1; }
+          test "$(jq -r .conclusion candidate-run.json)" = "success" \
+            || { echo "candidate run $CANDIDATE_RUN_ID did not succeed" >&2; exit 1; }
+          test "$(jq -r .path candidate-run.json)" = "$CANDIDATE_WORKFLOW" \
+            || { echo "run $CANDIDATE_RUN_ID is not a release-candidate run" >&2; exit 1; }
+          test "$(jq -r .head_sha candidate-run.json)" = "$CANDIDATE_COMMIT" \
+            || { echo "candidate run $CANDIDATE_RUN_ID built a different commit" >&2; exit 1; }
+
+      - name: Download the named artifact from that named run
+        run: |
+          set -euo pipefail
+          gh run download "$CANDIDATE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$ARTIFACT_NAME" \
+            --dir candidate
+
+      - name: Verify the retained package identity and digest
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/verify-candidate.mjs" <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { createHash, timingSafeEqual } from "node:crypto";
+          import { appendFileSync, readFileSync } from "node:fs";
+          import { resolve } from "node:path";
+
+          const metadata = JSON.parse(readFileSync("candidate/candidate-metadata.json", "utf8"));
+          const expected = {
+            artifactName: process.env.ARTIFACT_NAME,
+            commit: process.env.CANDIDATE_COMMIT,
+            runId: process.env.CANDIDATE_RUN_ID,
+            sri: process.env.EXPECTED_SRI,
+          };
+          for (const [field, want] of Object.entries(expected)) {
+            if (metadata[field] !== want) {
+              throw new Error(`candidate ${field} is ${metadata[field]}, expected ${want}`);
+            }
+          }
+          const source = JSON.parse(readFileSync("package.json", "utf8"));
+          if (source.name !== "weread-omni") {
+            throw new Error(`source package name is ${source.name}`);
+          }
+          if (process.env.RELEASE_TAG !== `v${source.version}`) {
+            throw new Error(`tag ${process.env.RELEASE_TAG} disagrees with package version ${source.version}`);
+          }
+          const expectedTarball = `${source.name}-${source.version}.tgz`;
+          if (metadata.tarball !== expectedTarball) {
+            throw new Error("candidate metadata does not name the canonical tarball");
+          }
+
+          const tarball = resolve("candidate", expectedTarball);
+          const digest = createHash("sha512").update(readFileSync(tarball)).digest();
+          const want = Buffer.from(process.env.EXPECTED_SRI.slice("sha512-".length), "base64");
+          if (want.length !== 64 || !timingSafeEqual(digest, want)) {
+            throw new Error("retained tarball does not match the expected SHA-512");
+          }
+          if (metadata.sha512 !== digest.toString("hex")) {
+            throw new Error("candidate metadata SHA-512 disagrees with the retained file");
+          }
+
+          const packed = JSON.parse(
+            execFileSync("tar", ["-xOf", tarball, "package/package.json"], { encoding: "utf8" }),
+          );
+          const changelog = readFileSync("CHANGELOG.md", "utf8");
+          if (packed.name !== source.name || metadata.name !== source.name) {
+            throw new Error("candidate package name disagrees with the source manifest");
+          }
+          if (packed.version !== source.version || metadata.version !== source.version) {
+            throw new Error("candidate package version disagrees with the source manifest");
+          }
+          const changelogVersion = source.version.replace(/-(?:alpha|beta|rc)\.[1-9]\d*$/, "");
+          if (!changelog.includes(`## [${changelogVersion}]`)) {
+            throw new Error(`CHANGELOG.md has no ${changelogVersion} release entry`);
+          }
+
+          appendFileSync(process.env.GITHUB_ENV, `TARBALL=${tarball}\n`);
+          NODE
+          node "$RUNNER_TEMP/verify-candidate.mjs"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+
+      - name: Require a provenance-capable toolchain
+        run: |
+          set -euo pipefail
+          npm install -g "npm@11.15.0"
+          node --version
+          npm --version
+
+      # The registry credential is scoped to the two steps below that talk to the
+      # registry; no other step in this job can read it. It must be a granular or
+      # automation token (or OIDC trusted publishing) — a legacy token cannot produce
+      # a provenance attestation.
+      - name: Confirm registry authentication
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Rechecks and immediately publishes the retained file. Never the working directory.
+      - name: Recheck the digest and publish the retained tarball
+        run: |
+          set -euo pipefail
+          test "$(sha512sum "$TARBALL" | cut -d ' ' -f1)" = "$(jq -r .sha512 candidate/candidate-metadata.json)"
+          npm publish "$TARBALL" --provenance --access public --tag "$NPM_DIST_TAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

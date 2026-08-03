@@ -1,0 +1,19 @@
+[
+  {
+    "scope": "https://i.weread.qq.com",
+    "method": "GET",
+    "path": "/store/search?keyword=%E4%B8%89%E4%BD%93&scope=10&count=1&maxIdx=0",
+    "status": 200,
+    "response": {
+      "books": [
+        {
+          "bookInfo": {
+            "bookId": "695233",
+            "title": "三体全集（全三册）",
+            "author": "刘慈欣"
+          }
+        }
+      ]
+    }
+  }
+]

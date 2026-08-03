@@ -1,0 +1,16 @@
+.env
+*.log
+*.swp
+*.swo
+credentials*.json
+.credentials.*.tmp
+coverage/
+dist/
+node_modules/
+.vitest/
+.worktrees/
+*.tgz
+.sisyphus/
+test/fixtures/cassettes/.public-book-search.*.json
+.claude/
+.private/
