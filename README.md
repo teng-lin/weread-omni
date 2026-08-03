@@ -33,6 +33,8 @@ weread-omni doctor --json
 weread-omni search books "三体" --json
 ```
 
+命令名是 `weread-omni`。`0.1.0` 装的是 `weread`，和官方 Skill 的命令重名，所以从 `0.1.1` 起改掉了；升级不会删掉旧的 `weread`，装过 `0.1.0` 的话重装一次即可。
+
 `weread-omni login` 显示一个二维码，用微信读书账号扫一次即可。
 
 登录成功后的 JSON 只包含账号别名、客户端 ID、`vid` 和设备 ID，不包含任何令牌。`weread-omni doctor` 会核对当前安装和登录状态，并发起一次只读请求确认连接正常。
@@ -49,9 +51,9 @@ weread-omni accounts use work --json
 weread-omni --account default shelf sync --json
 ```
 
-账号别名的首字符必须是小写字母或数字，后面可以使用小写字母、数字、`-` 和 `_`，总长不超过 64 个字符。命令没有指定 `--account` 时，只有一个账号就直接使用它；有多个账号时，先读取 `WEREAD_ACCOUNT`，再读取 `weread-omni accounts use <alias>` 保存的默认账号。两者都没有设置时，命令会要求你明确选择。
+账号别名的首字符必须是小写字母或数字，后面可以使用小写字母、数字、`-` 和 `_`，总长不超过 64 个字符。命令没有指定 `--account` 时，只有一个账号就直接使用它；有多个账号时，先读取 `WEREAD_ACCOUNT`，再读取 `weread-omni accounts use <alias>` 保存的默认账号。两者都没有设置时，交互式终端会列出所有账号，支持按编号或别名选择；非交互式命令必须传入 `--account` 或设置默认账号。
 
-登录信息默认保存在 `~/.config/weread/accounts/<alias>/`。目录权限为 `0700`，文件权限为 `0600`。设置 `WEREAD_CONFIG_DIR` 可以更改配置目录。项目读取的 `WEREAD_*` 变量都列在 [`.env.example`](https://github.com/teng-lin/weread-omni/blob/v0.1.0/.env.example) 中。
+登录信息默认保存在 `~/.config/weread/accounts/<alias>/`。目录权限为 `0700`，文件权限为 `0600`。设置 `WEREAD_CONFIG_DIR` 可以更改配置目录。项目读取的 `WEREAD_*` 变量都列在 [`.env.example`](https://github.com/teng-lin/weread-omni/blob/v0.1.1/.env.example) 中。
 
 ### 安装 agent skill
 

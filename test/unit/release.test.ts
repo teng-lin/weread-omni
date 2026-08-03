@@ -169,7 +169,7 @@ describe("release artifacts", () => {
     expect(await text("LICENSE")).toMatch(/MIT License[\s\S]*Permission is hereby granted/);
   });
 
-  it("records the complete first public release with no pending changes", async () => {
+  it("records every release, with no pending changes", async () => {
     const changelog = await text("CHANGELOG.md");
     const manifest = JSON.parse(await text("package.json")) as { version: string };
 
@@ -178,9 +178,12 @@ describe("release artifacts", () => {
     const current = changelog.indexOf(`## [${manifest.version}]`);
     expect(unreleased?.index).toBe(changelog.search(/^## \[/m));
     expect(unreleased?.[1]?.trim()).toBe("");
+    // The shipping version has to have its own section, immediately after Unreleased.
     expect(current).toBeGreaterThan(unreleased?.index ?? -1);
-    const next = changelog.indexOf("\n## [", current + 1);
-    const release = changelog.slice(current, next < 0 ? undefined : next);
+    // The initial release keeps describing the whole surface, whatever ships later.
+    const first = changelog.indexOf("## [0.1.0]");
+    const firstNext = changelog.indexOf("\n## [", first + 1);
+    const release = changelog.slice(first, firstNext < 0 ? undefined : firstNext);
     expect(release).toContain("MobileApiClient");
     expect(release).toContain("WEREAD_PLUGINS");
     expect(release).toContain("incremental deltas");

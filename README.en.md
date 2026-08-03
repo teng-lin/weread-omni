@@ -33,6 +33,8 @@ weread-omni doctor --json
 weread-omni search books "The Three-Body Problem" --json
 ```
 
+The command is `weread-omni`. `0.1.0` installed it as `weread`, which collides with the official Skill's command, so it was renamed in `0.1.1`. Upgrading does not remove the old `weread` binary — reinstall if you had `0.1.0`.
+
 `weread-omni login` presents a single E-Ink QR code — scan it once with your WeRead account.
 
 QR codes and progress go to stderr. On success, the JSON written to stdout contains only the account alias, client ID, `vid`, and device ID—never tokens. `weread-omni doctor` checks the active installation, authentication, and one read-only request.
@@ -48,9 +50,9 @@ weread-omni accounts use work --json
 weread-omni --account default shelf sync --json
 ```
 
-An alias must start with a lowercase letter or digit. The remaining characters may be lowercase letters, digits, `-`, or `_`, for a maximum length of 64. If a command omits `--account`, the only configured account is selected automatically. With multiple accounts, `WEREAD_ACCOUNT` takes precedence over the default saved by `weread-omni accounts use <alias>`. If neither selects an account, the CLI asks you to be explicit.
+An alias must start with a lowercase letter or digit. The remaining characters may be lowercase letters, digits, `-`, or `_`, for a maximum length of 64. If a command omits `--account`, the only configured account is selected automatically. With multiple accounts, `WEREAD_ACCOUNT` takes precedence over the default saved by `weread-omni accounts use <alias>`. If neither selects an account, an interactive terminal lists every account and lets you choose by number or alias; non-interactive commands must pass `--account` or set a default.
 
-Credentials live under `~/.config/weread/accounts/<alias>/` by default. Directories use mode `0700`, and files use `0600`. Set `WEREAD_CONFIG_DIR` to move the configuration root. Every `WEREAD_*` variable read by the project is documented in [`.env.example`](https://github.com/teng-lin/weread-omni/blob/v0.1.0/.env.example).
+Credentials live under `~/.config/weread/accounts/<alias>/` by default. Directories use mode `0700`, and files use `0600`. Set `WEREAD_CONFIG_DIR` to move the configuration root. Every `WEREAD_*` variable read by the project is documented in [`.env.example`](https://github.com/teng-lin/weread-omni/blob/v0.1.1/.env.example).
 
 ### Install the agent skill
 

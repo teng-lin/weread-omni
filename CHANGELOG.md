@@ -9,6 +9,20 @@ CLI surface is **experimental** and may change in a minor release.
 
 ## [Unreleased]
 
+## [0.1.1]
+
+### Changed
+
+- **The CLI command is now `weread-omni`.** The official WeRead Agent Skill
+  installs a `weread` command, so shipping our own meant whichever package was
+  installed second silently won the name. Anyone who installed `0.1.0` should
+  reinstall; the old `weread` binary is not removed by upgrading.
+- Recovery hints name the new command, so a copied suggestion works as printed.
+
+Credential and library locations are untouched: `~/.config/weread/` and
+`~/.local/share/weread/library` keep an existing login and cached content. The
+projected tool names, the upstream host, and the bundled skill are unchanged.
+
 ## [0.1.0]
 
 First public release.
