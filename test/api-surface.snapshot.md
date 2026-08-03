@@ -210,9 +210,10 @@
 - `toTransportError` — function — dist/errors.d.ts
 - `withContentLibrary` — function — dist/library/cached-client.d.ts
 
-### `weread-omni/cli` — dist/cli.d.ts (20 exports)
+### `weread-omni/cli` — dist/cli.d.ts (21 exports)
 
 - `AccountCliDependencies` — interface — dist/cli.d.ts
+- `AccountSelector` — type — dist/cli.d.ts
 - `CliDependencies` — interface — dist/cli.d.ts
 - `CliIdentity` — interface — dist/cli.d.ts
 - `CliOperationsClient` — type — dist/cli/commands.d.ts
@@ -286,6 +287,7 @@ interface AccountCliDependencies extends Omit<CliDependencies<MobileApiClient>, 
   library?: PublicAccountLibrary
   libraryMode?: PublicAccountLibraryMode
   renderQr?: ((text: string) => Promise<string | undefined>)
+  selectAccount?: AccountSelector
   signal?: AbortSignal
   stderr?: OutputWriter
   stdout?: OutputWriter
@@ -330,6 +332,12 @@ interface AccountManagerOptions {
   fetchImpl?: { (input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>; (input: string | Request | URL, init?: RequestInit | undefined): Promise<Response>; }
   plugins?: readonly ClientPlugin[]
 }
+```
+
+### `AccountSelector` — dist/cli.d.ts
+
+```ts
+type AccountSelector = (accounts: readonly AccountSummary[]) => string | Promise<string>
 ```
 
 ### `AccountSummary` — dist/accounts.d.ts

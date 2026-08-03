@@ -22,7 +22,7 @@ const CLI_METADATA: { package: string; version: string } = (() => {
   }
 })();
 
-import { AccountManager, type OpenAccount } from "./accounts.js";
+import { AccountManager, type AccountSummary, type OpenAccount } from "./accounts.js";
 import type { CanonicalClient } from "./api/client.js";
 import { createEinkClient, type MobileApiClient } from "./api/mobile-client.js";
 import { isAmbiguousImportOutcome } from "./api/resources/import.js";
@@ -757,6 +757,46 @@ function rootArguments(argv: readonly string[]): { command?: string; accounts: s
 
 export interface AccountCliDependencies extends Omit<CliDependencies, "accountManager" | "stores" | "getClient"> {
   accountManager: AccountManager;
+  /** Choose an account when an interactive command has several candidates and no default. */
+  selectAccount?: AccountSelector;
+}
+
+export type AccountSelector = (accounts: readonly AccountSummary[]) => Promise<string> | string;
+
+async function promptForAccount(accounts: readonly AccountSummary[], stderr: OutputWriter): Promise<string> {
+  stderr.write("Multiple WeRead accounts are configured:\n");
+  for (const [index, { account, client }] of accounts.entries()) {
+    stderr.write(`  ${index + 1}. ${account} (${client})\n`);
+  }
+
+  const prompt = createInterface({
+    input: process.stdin,
+    // readline writes the question to `output`, and never writes anything but a string there, so a
+    // one-method adapter is enough to keep the question on the same channel as the list above.
+    output: { write: (chunk: string) => stderr.write(chunk) } as NodeJS.WritableStream,
+    terminal: false,
+  });
+  // `question()` never settles when stdin reaches EOF -- Ctrl-D, or a closed pipe -- so without
+  // this the CLI would hang forever and the `finally` below would never run. `close` does fire, so
+  // it aborts the pending question and the catch turns that into an ordinary refusal.
+  const cancelled = new AbortController();
+  prompt.once("close", () => cancelled.abort());
+  try {
+    const answer = (
+      await prompt.question("Select an account by number or alias: ", { signal: cancelled.signal })
+    ).trim();
+    // An alias made of digits is still an alias; the list position is only the fallback reading.
+    const selected =
+      accounts.find(({ account }) => account === answer) ??
+      (/^\d+$/.test(answer) ? accounts[Number(answer) - 1] : undefined);
+    if (!selected) throw new AuthError(`unknown account selection ${JSON.stringify(answer)}`);
+    return selected.account;
+  } catch (error) {
+    if (cancelled.signal.aborted) throw new AuthError("no account was selected");
+    throw error;
+  } finally {
+    prompt.close();
+  }
 }
 
 export async function runAccountCli(
@@ -782,7 +822,25 @@ export async function runAccountCli(
       argv.includes("-V");
     let stores: readonly CliStore[] | undefined;
     if (!management) {
-      const selected = dependencies.accountManager.select(parsed.accounts);
+      // Asking is the last resort: only when nothing else picks the account -- no --account, more
+      // than one configured, no recorded default -- and only when someone is there to answer.
+      //
+      // `--json` disqualifies a caller even from a terminal. It declares the output machine-read,
+      // the same way it already forces `--yes` on destructive commands, and a caller piping JSON
+      // into another program still inherits the terminal's stdin: without this check that pipeline
+      // blocks on a question nobody sees. Such callers keep the old "pass --account" error.
+      //
+      // Commander has not parsed yet here, so `--json` is read from argv the way the flags below are.
+      const interactive =
+        parsed.accounts.length === 0 &&
+        !argv.includes("--json") &&
+        (dependencies.isTTY ?? process.stdin.isTTY === true);
+      const candidates = interactive ? dependencies.accountManager.accounts() : [];
+      const shouldPrompt = candidates.length > 1 && dependencies.accountManager.defaultAccount() === undefined;
+      const selectAccount = dependencies.selectAccount ?? ((accounts) => promptForAccount(accounts, stderr));
+      const selected = dependencies.accountManager.select(
+        shouldPrompt ? [await selectAccount(candidates)] : parsed.accounts,
+      );
       if (selected.length !== 1) throw new AuthError("ordinary CLI commands accept exactly one account");
       const opened: OpenAccount = await dependencies.accountManager.open(selected[0] as string);
       // Commander has not parsed yet at this point, so the flags are read from argv directly --
