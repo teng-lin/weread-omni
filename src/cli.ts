@@ -308,14 +308,7 @@ export function createProgram<TClient extends CliOperationsClient = MobileApiCli
     });
   const confirm =
     dependencies.confirm ??
-    (async (message: string) => {
-      const prompt = createInterface({ input: process.stdin, output: process.stderr });
-      try {
-        return /^(?:y|yes)$/i.test((await prompt.question(`${message} [y/N] `)).trim());
-      } finally {
-        prompt.close();
-      }
-    });
+    (async (message: string) => /^(?:y|yes)$/i.test(await ask(`${message} [y/N] `, process.stderr)));
   const isTTY = dependencies.isTTY ?? process.stdin.isTTY === true;
   const program = new Command()
     .name("weread-omni")
@@ -475,12 +468,7 @@ export function createProgram<TClient extends CliOperationsClient = MobileApiCli
           },
           onOtp: async () => {
             if (!isTTY) throw new AuthError("this client requires a four-digit OTP from an interactive terminal");
-            const prompt = createInterface({ input: process.stdin, output: process.stderr });
-            try {
-              return (await prompt.question("Login OTP: ")).trim();
-            } finally {
-              prompt.close();
-            }
+            return ask("Login OTP: ", process.stderr);
           },
         });
         output(
@@ -763,40 +751,49 @@ export interface AccountCliDependencies extends Omit<CliDependencies, "accountMa
 
 export type AccountSelector = (accounts: readonly AccountSummary[]) => Promise<string> | string;
 
+/**
+ * Ask one question, and settle even when stdin ends without an answer.
+ *
+ * `readline/promises`' `question()` never settles if the stream reaches EOF first -- Ctrl-D, a
+ * closed pipe, a harness that inherits a terminal and then closes it. The `await` stays pending, so
+ * the caller's `finally` never runs and the interface stays open. The process does not hang
+ * visibly: the entry point consumes that promise with `.then()`, so the event loop simply drains and
+ * exits 0 having printed nothing, which a wrapper reads as "succeeded, empty result".
+ *
+ * The interface's `close` event does fire on EOF, so it aborts the pending question and the caller
+ * gets a rejection it can turn into an ordinary refusal.
+ */
+async function ask(query: string, output: NodeJS.WritableStream): Promise<string> {
+  const prompt = createInterface({ input: process.stdin, output, terminal: false });
+  const cancelled = new AbortController();
+  prompt.once("close", () => cancelled.abort());
+  try {
+    return (await prompt.question(query, { signal: cancelled.signal })).trim();
+  } catch (error) {
+    if (cancelled.signal.aborted) throw new AuthError("no answer was given");
+    throw error;
+  } finally {
+    prompt.close();
+  }
+}
+
 async function promptForAccount(accounts: readonly AccountSummary[], stderr: OutputWriter): Promise<string> {
   stderr.write("Multiple WeRead accounts are configured:\n");
   for (const [index, { account, client }] of accounts.entries()) {
     stderr.write(`  ${index + 1}. ${account} (${client})\n`);
   }
 
-  const prompt = createInterface({
-    input: process.stdin,
-    // readline writes the question to `output`, and never writes anything but a string there, so a
-    // one-method adapter is enough to keep the question on the same channel as the list above.
-    output: { write: (chunk: string) => stderr.write(chunk) } as NodeJS.WritableStream,
-    terminal: false,
-  });
-  // `question()` never settles when stdin reaches EOF -- Ctrl-D, or a closed pipe -- so without
-  // this the CLI would hang forever and the `finally` below would never run. `close` does fire, so
-  // it aborts the pending question and the catch turns that into an ordinary refusal.
-  const cancelled = new AbortController();
-  prompt.once("close", () => cancelled.abort());
-  try {
-    const answer = (
-      await prompt.question("Select an account by number or alias: ", { signal: cancelled.signal })
-    ).trim();
-    // An alias made of digits is still an alias; the list position is only the fallback reading.
-    const selected =
-      accounts.find(({ account }) => account === answer) ??
-      (/^\d+$/.test(answer) ? accounts[Number(answer) - 1] : undefined);
-    if (!selected) throw new AuthError(`unknown account selection ${JSON.stringify(answer)}`);
-    return selected.account;
-  } catch (error) {
-    if (cancelled.signal.aborted) throw new AuthError("no account was selected");
-    throw error;
-  } finally {
-    prompt.close();
-  }
+  // readline writes the question to `output` and never writes anything but a string there, so a
+  // one-method adapter keeps it on the same channel as the list above.
+  const answer = await ask("Select an account by number or alias: ", {
+    write: (chunk: string) => stderr.write(chunk),
+  } as NodeJS.WritableStream);
+  // An alias made of digits is still an alias; the list position is only the fallback reading.
+  const selected =
+    accounts.find(({ account }) => account === answer) ??
+    (/^\d+$/.test(answer) ? accounts[Number(answer) - 1] : undefined);
+  if (!selected) throw new AuthError(`unknown account selection ${JSON.stringify(answer)}`);
+  return selected.account;
 }
 
 export async function runAccountCli(
