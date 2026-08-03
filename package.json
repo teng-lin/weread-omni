@@ -1,6 +1,6 @@
 {
   "name": "weread-omni",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Everything the official WeRead (微信读书 / WeChat Reading) Agent Skill does — plus public accounts, RSS/Atom/JSON feeds, book imports, WeRead AI, and write access to your highlights and shelf. One canonical surface of 40 operations through an agent skill, TypeScript SDK, and CLI.",
   "keywords": [
     "weread",
@@ -50,7 +50,7 @@
     }
   },
   "bin": {
-    "weread": "./dist/cli.js"
+    "weread-omni": "./dist/cli.js"
   },
   "files": [
     "dist",

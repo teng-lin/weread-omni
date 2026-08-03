@@ -243,12 +243,12 @@ describe("public CLI topology", () => {
   it("renders help without loading credentials", async () => {
     const deps = dependencies();
 
-    await expect(createProgram(deps.value).parseAsync(["node", "weread", "--help"])).rejects.toMatchObject({
+    await expect(createProgram(deps.value).parseAsync(["node", "weread-omni", "--help"])).rejects.toMatchObject({
       code: "commander.helpDisplayed",
       exitCode: 0,
     });
     expect(deps.stdout.read()).toMatchInlineSnapshot(`
-      "Usage: weread [options] [command]
+      "Usage: weread-omni [options] [command]
 
       WeChat Reading command line interface
 
@@ -281,8 +281,8 @@ describe("public CLI topology", () => {
   });
 
   it.each([
-    { argv: ["node", "weread"], usage: "Usage: weread [options] [command]" },
-    { argv: ["node", "weread", "book"], usage: "Usage: weread book [options] [command]" },
+    { argv: ["node", "weread-omni"], usage: "Usage: weread-omni [options] [command]" },
+    { argv: ["node", "weread-omni", "book"], usage: "Usage: weread-omni book [options] [command]" },
   ])("renders contextual help for an incomplete command", async ({ argv, usage }) => {
     const deps = dependencies();
 
@@ -297,7 +297,7 @@ describe("public CLI topology", () => {
     async (...args) => {
       const deps = dependencies();
 
-      await expect(runCli(["node", "weread", ...args], deps.value)).resolves.toBe(1);
+      await expect(runCli(["node", "weread-omni", ...args], deps.value)).resolves.toBe(1);
       expect(deps.stdout.read()).toBe("");
       expect(JSON.parse(deps.stderr.read())).toEqual({ error: "missing command" });
       expect(deps.value.getClient).not.toHaveBeenCalled();
@@ -307,8 +307,8 @@ describe("public CLI topology", () => {
   it("keeps explicit help successful and human-readable with --json present", async () => {
     const deps = dependencies();
 
-    await expect(runCli(["node", "weread", "book", "--help", "--json"], deps.value)).resolves.toBe(0);
-    expect(deps.stdout.read()).toContain("Usage: weread book");
+    await expect(runCli(["node", "weread-omni", "book", "--help", "--json"], deps.value)).resolves.toBe(0);
+    expect(deps.stdout.read()).toContain("Usage: weread-omni book");
     expect(deps.stderr.read()).toBe("");
   });
 
@@ -328,7 +328,7 @@ describe("public CLI topology", () => {
   ])("renders declared defaults and bounds in help for $argv", async ({ argv, expected }) => {
     const deps = dependencies();
 
-    await expect(runCli(["node", "weread", ...argv], deps.value)).resolves.toBe(0);
+    await expect(runCli(["node", "weread-omni", ...argv], deps.value)).resolves.toBe(0);
     const help = deps.stdout.read().replace(/\s+/g, " ");
     for (const text of expected) expect(help).toContain(text);
     expect(deps.stderr.read()).toBe("");
@@ -349,7 +349,7 @@ describe("public CLI topology", () => {
   ])("rejects removed command %s before loading credentials", async (...args) => {
     const deps = dependencies();
 
-    await expect(runCli(["node", "weread", ...args], deps.value)).resolves.toBe(1);
+    await expect(runCli(["node", "weread-omni", ...args], deps.value)).resolves.toBe(1);
     expect(deps.value.getClient).not.toHaveBeenCalled();
     expect(deps.stderr.read()).toContain("unknown command");
   });
@@ -626,7 +626,7 @@ describe("public CLI operation projection", () => {
     const client = { [namespace]: { [action]: method } } as unknown as MobileApiClient;
 
     await expect(
-      runCli(["node", "weread", "--json", ...args], {
+      runCli(["node", "weread-omni", "--json", ...args], {
         getClient: () => client,
         env: enabledGates,
         stdout: stdout.stream,
@@ -645,7 +645,7 @@ describe("public CLI operation projection", () => {
     const client = { publicAccounts: { articles } } as unknown as MobileApiClient;
 
     await expect(
-      runCli(["node", "weread", "public-accounts", "articles", "MP_WXS_1", "--synckey", "9", "--json"], {
+      runCli(["node", "weread-omni", "public-accounts", "articles", "MP_WXS_1", "--synckey", "9", "--json"], {
         getClient: () => client,
         stdout: sink().stream,
         stderr: sink().stream,
@@ -656,7 +656,7 @@ describe("public CLI operation projection", () => {
     const deps = dependencies();
     await expect(
       runCli(
-        ["node", "weread", "public-accounts", "articles", "MP_WXS_1", "--synckey", "9", "--offset", "2"],
+        ["node", "weread-omni", "public-accounts", "articles", "MP_WXS_1", "--synckey", "9", "--offset", "2"],
         deps.value,
       ),
     ).resolves.toBe(1);
@@ -675,7 +675,7 @@ describe("public CLI operation projection", () => {
     }));
 
     await expect(
-      runCli(["node", "weread", "shelf", "sync", "--count", "1", "--offset", "1", "--json"], {
+      runCli(["node", "weread-omni", "shelf", "sync", "--count", "1", "--offset", "1", "--json"], {
         getClient: () => ({ shelf: { sync } }) as unknown as MobileApiClient,
         stdout: stdout.stream,
         stderr: stderr.stream,
@@ -696,7 +696,7 @@ describe("public CLI operation projection", () => {
     const deps = dependencies();
 
     await expect(
-      runCli(["node", "weread", "shelf", "sync", "--full", "--count", "1", "--json"], deps.value),
+      runCli(["node", "weread-omni", "shelf", "sync", "--full", "--count", "1", "--json"], deps.value),
     ).resolves.toBe(1);
     expect(deps.value.getClient).not.toHaveBeenCalled();
     expect(deps.stderr.read()).toContain("cannot be used with option");
@@ -717,7 +717,7 @@ describe("public CLI lifecycle and extension seam", () => {
     const stderr = sink();
 
     await expect(
-      runCli(["node", "weread", "doctor", "--json"], {
+      runCli(["node", "weread-omni", "doctor", "--json"], {
         env,
         getClient: () => ({ shelf: { sync } }) as unknown as MobileApiClient,
         stdout: stdout.stream,
@@ -747,7 +747,7 @@ describe("public CLI lifecycle and extension seam", () => {
 
     const human = sink();
     await expect(
-      runCli(["node", "weread", "doctor"], {
+      runCli(["node", "weread-omni", "doctor"], {
         env,
         getClient: () => ({ shelf: { sync } }) as unknown as MobileApiClient,
         stdout: human.stream,
@@ -781,7 +781,7 @@ describe("public CLI lifecycle and extension seam", () => {
     const stdout = sink();
 
     await expect(
-      runCli(["node", "weread", "whoami", "--json"], { env, stdout: stdout.stream, stderr: sink().stream }),
+      runCli(["node", "weread-omni", "whoami", "--json"], { env, stdout: stdout.stream, stderr: sink().stream }),
     ).resolves.toBe(0);
     expect(JSON.parse(stdout.read())).toEqual({ vid: "123", deviceId: fixtureCredentials.deviceId, source: "file" });
   });
@@ -802,7 +802,7 @@ describe("public CLI lifecycle and extension seam", () => {
     });
 
     await expect(
-      runCli(["node", "weread", "extension-probe"], {
+      runCli(["node", "weread-omni", "extension-probe"], {
         getClient: () => client,
         stdout: stdout.stream,
         stderr: stderr.stream,
@@ -821,7 +821,7 @@ describe("CLI store routing and capability policy", () => {
     const deps = dependencies();
 
     await expect(
-      runCli(["node", "weread", "--account", "personal", "--account", "work", "book", "info", "b"], deps.value),
+      runCli(["node", "weread-omni", "--account", "personal", "--account", "work", "book", "info", "b"], deps.value),
     ).resolves.toBe(1);
 
     expect(deps.value.getClient).not.toHaveBeenCalled();
@@ -837,7 +837,7 @@ describe("CLI store routing and capability policy", () => {
     const stderr = sink();
 
     await expect(
-      runCli(["node", "weread", "--account", "personal", "--account", "work", "private", "mcp"], {
+      runCli(["node", "weread-omni", "--account", "personal", "--account", "work", "private", "mcp"], {
         stores,
         stderr: stderr.stream,
         extendStoreProgram: (program) => {
@@ -859,17 +859,17 @@ describe("CLI store routing and capability policy", () => {
 
     const cases = [
       {
-        argv: ["node", "weread", "--account", "flag", "whoami", "--json"],
+        argv: ["node", "weread-omni", "--account", "flag", "whoami", "--json"],
         dependencies: { env: { WEREAD_CONFIG_DIR: directory }, store: "dependency" },
         expected: "flag",
       },
       {
-        argv: ["node", "weread", "whoami", "--json"],
+        argv: ["node", "weread-omni", "whoami", "--json"],
         dependencies: { env: { WEREAD_CONFIG_DIR: directory }, store: "dependency" },
         expected: "dependency",
       },
       {
-        argv: ["node", "weread", "whoami", "--json"],
+        argv: ["node", "weread-omni", "whoami", "--json"],
         dependencies: { env: { WEREAD_CONFIG_DIR: directory } },
         expected: "eink",
       },
@@ -891,7 +891,9 @@ describe("CLI store routing and capability policy", () => {
   it("rejects a different selector for a fixed injected client before calling it", async () => {
     const deps = dependencies();
 
-    await expect(runCli(["node", "weread", "--account", "work", "book", "info", "b"], deps.value)).resolves.toBe(1);
+    await expect(runCli(["node", "weread-omni", "--account", "work", "book", "info", "b"], deps.value)).resolves.toBe(
+      1,
+    );
 
     expect(deps.value.getClient).not.toHaveBeenCalled();
     expect(deps.stderr.read()).toContain('fixed to store "eink"');
@@ -925,7 +927,7 @@ describe("CLI store routing and capability policy", () => {
 
     const unsupportedError = sink();
     await expect(
-      runCli(["node", "weread", "book", "info", "b", "--json"], {
+      runCli(["node", "weread-omni", "book", "info", "b", "--json"], {
         env,
         store: "alpha",
         stores,
@@ -938,7 +940,7 @@ describe("CLI store routing and capability policy", () => {
 
     const selectedOutput = sink();
     await expect(
-      runCli(["node", "weread", "--account", "beta", "book", "info", "b", "--json"], {
+      runCli(["node", "weread-omni", "--account", "beta", "book", "info", "b", "--json"], {
         env,
         stores,
         stdout: selectedOutput.stream,
@@ -950,7 +952,7 @@ describe("CLI store routing and capability policy", () => {
 
     const identityOutput = sink();
     await expect(
-      runCli(["node", "weread", "whoami", "--json"], {
+      runCli(["node", "weread-omni", "whoami", "--json"], {
         env,
         store: "alpha",
         stores,
@@ -1017,7 +1019,7 @@ describe("CLI store routing and capability policy", () => {
     });
 
     await expect(
-      runCli(["node", "weread", "--account", "beta", "store-probe"], {
+      runCli(["node", "weread-omni", "--account", "beta", "store-probe"], {
         store: "alpha",
         stores,
         stdout: stdout.stream,
@@ -1051,7 +1053,7 @@ describe("CLI store routing and capability policy", () => {
     const getClient = vi.fn(() => new MobileApiClient({ credentials: fixtureCredentials, env: {} }));
 
     await expect(
-      runCli(["node", "weread", "book", "info", "b"], {
+      runCli(["node", "weread-omni", "book", "info", "b"], {
         stores: [{ name: "alpha", backend: "mobile-api", client: {} }],
         getClient,
         stderr: stderr.stream,
@@ -1091,13 +1093,13 @@ describe("CLI store routing and capability policy", () => {
       stores,
     });
     expect(leafCommands(disabledProgram)).not.toContain("shelf add");
-    await expect(disabledProgram.parseAsync(["node", "weread", "shelf", "add", "b"])).rejects.toThrow();
+    await expect(disabledProgram.parseAsync(["node", "weread-omni", "shelf", "add", "b"])).rejects.toThrow();
     expect(add).not.toHaveBeenCalled();
 
     // Policy is a startup snapshot: visibility and dispatch cannot diverge if an embedder mutates
     // its configuration object after constructing the command tree.
     env.WEREAD_READONLY = "1";
-    await program.parseAsync(["node", "weread", "shelf", "add", "b"]);
+    await program.parseAsync(["node", "weread-omni", "shelf", "add", "b"]);
     expect(add).toHaveBeenCalledOnce();
   });
 });
@@ -1115,7 +1117,7 @@ describe("public CLI output and failures", () => {
     });
 
     await expect(
-      runCli(["node", "weread", "book", "info", "b", "--json"], {
+      runCli(["node", "weread-omni", "book", "info", "b", "--json"], {
         getClient: () => ({ book: { info } }) as unknown as MobileApiClient,
         stdout: stdout.stream,
         stderr: stderr.stream,
@@ -1158,7 +1160,7 @@ describe("public CLI output and failures", () => {
     const stderr = sink();
 
     await expect(
-      runCli(["node", "weread", "public-accounts", "export", "MP_WXS_1", "--out", destination, "--json"], {
+      runCli(["node", "weread-omni", "public-accounts", "export", "MP_WXS_1", "--out", destination, "--json"], {
         getClient: () => client,
         stdout: stdout.stream,
         stderr: stderr.stream,
@@ -1202,7 +1204,7 @@ describe("public CLI output and failures", () => {
     });
 
     await expect(
-      runCli(["node", "weread", "book", "info", "b", "--json"], {
+      runCli(["node", "weread-omni", "book", "info", "b", "--json"], {
         getClient: () => ({ book: { info } }) as unknown as MobileApiClient,
         stdout: stdout.stream,
         stderr: stderr.stream,
@@ -1231,7 +1233,7 @@ describe("public CLI output and failures", () => {
     ] as const) {
       const stderr = sink();
       await expect(
-        runCli(["node", "weread", "--account", store, "book", "info", "b", "--json"], {
+        runCli(["node", "weread-omni", "--account", store, "book", "info", "b", "--json"], {
           stores: [{ name: store, backend: `${store}-api`, client }],
           stdout: sink().stream,
           stderr: stderr.stream,
@@ -1242,7 +1244,7 @@ describe("public CLI output and failures", () => {
 
     const stderr = sink();
     await expect(
-      runCli(["node", "weread", "book", "info", "b", "--json"], {
+      runCli(["node", "weread-omni", "book", "info", "b", "--json"], {
         store: "beta",
         stores: [
           { name: "alpha", backend: "mobile-api", client: { book: { info } } },
@@ -1260,7 +1262,7 @@ describe("public CLI output and failures", () => {
   it("requires confirmation for destructive non-interactive actions", async () => {
     const deps = dependencies();
 
-    await expect(runCli(["node", "weread", "shelf", "delete", "b", "--json"], deps.value)).resolves.toBe(1);
+    await expect(runCli(["node", "weread-omni", "shelf", "delete", "b", "--json"], deps.value)).resolves.toBe(1);
     expect(deps.value.getClient).not.toHaveBeenCalled();
     expect(deps.stderr.read()).toContain("requires --yes");
   });
@@ -1269,7 +1271,7 @@ describe("public CLI output and failures", () => {
     const deps = dependencies();
 
     await expect(
-      runCli(["node", "weread", "notes", "remove-bookmark", "bookmark", "--json"], deps.value),
+      runCli(["node", "weread-omni", "notes", "remove-bookmark", "bookmark", "--json"], deps.value),
     ).resolves.toBe(1);
     expect(deps.value.getClient).not.toHaveBeenCalled();
     expect(deps.stderr.read()).toContain("requires --yes");
@@ -1279,7 +1281,7 @@ describe("public CLI output and failures", () => {
     const deps = dependencies();
 
     await expect(
-      runCli(["node", "weread", "public-accounts", "unsubscribe", "MP_WXS_1", "--json"], deps.value),
+      runCli(["node", "weread-omni", "public-accounts", "unsubscribe", "MP_WXS_1", "--json"], deps.value),
     ).resolves.toBe(1);
     expect(deps.value.getClient).not.toHaveBeenCalled();
     expect(deps.stderr.read()).toContain("requires --yes");
@@ -1298,7 +1300,7 @@ describe("public CLI output and failures", () => {
   ])("validates public-account command %s before loading credentials", async (...args) => {
     const deps = dependencies();
 
-    await expect(runCli(["node", "weread", ...args, "--json"], deps.value)).resolves.toBe(1);
+    await expect(runCli(["node", "weread-omni", ...args, "--json"], deps.value)).resolves.toBe(1);
     expect(deps.value.getClient).not.toHaveBeenCalled();
   });
 
@@ -1329,7 +1331,7 @@ describe("public CLI output and failures", () => {
     const feedPath = join(directory, "feed.json");
     await expect(
       runCli(
-        ["node", "weread", "public-accounts", "feed", "MP_WXS_1", "--format", "json", "--out", feedPath, "--json"],
+        ["node", "weread-omni", "public-accounts", "feed", "MP_WXS_1", "--format", "json", "--out", feedPath, "--json"],
         { getClient: () => client, stdout: feedOut.stream, stderr: sink().stream },
       ),
     ).resolves.toBe(0);
@@ -1338,7 +1340,7 @@ describe("public CLI output and failures", () => {
     const archiveOut = sink();
     const archivePath = join(directory, "archive");
     await expect(
-      runCli(["node", "weread", "public-accounts", "export", "MP_WXS_1", "--out", archivePath, "--json"], {
+      runCli(["node", "weread-omni", "public-accounts", "export", "MP_WXS_1", "--out", archivePath, "--json"], {
         getClient: () => client,
         stdout: archiveOut.stream,
         stderr: sink().stream,
@@ -1365,7 +1367,18 @@ describe("public CLI output and failures", () => {
 
     await expect(
       runCli(
-        ["node", "weread", "public-accounts", "feed", "MP_WXS_1", "--format", "json", "--out", destination, "--json"],
+        [
+          "node",
+          "weread-omni",
+          "public-accounts",
+          "feed",
+          "MP_WXS_1",
+          "--format",
+          "json",
+          "--out",
+          destination,
+          "--json",
+        ],
         {
           getClient: () =>
             ({
@@ -1388,7 +1401,7 @@ describe("public CLI output and failures", () => {
     deps.value.isTTY = true;
     deps.value.confirm = vi.fn(async () => false);
 
-    await expect(runCli(["node", "weread", "shelf", "delete", "b"], deps.value)).resolves.toBe(0);
+    await expect(runCli(["node", "weread-omni", "shelf", "delete", "b"], deps.value)).resolves.toBe(0);
     expect(deps.value.confirm).toHaveBeenCalledWith("Deleting this book?");
     expect(deps.value.getClient).not.toHaveBeenCalled();
     expect(deps.stdout.read()).toBe("Cancelled.\n");
@@ -1409,14 +1422,14 @@ describe("public CLI output and failures", () => {
   ])("rejects invalid numeric option %s before loading the client", async (...args) => {
     const deps = dependencies();
 
-    await expect(runCli(["node", "weread", ...args, "--json"], deps.value)).resolves.toBe(1);
+    await expect(runCli(["node", "weread-omni", ...args, "--json"], deps.value)).resolves.toBe(1);
     expect(deps.value.getClient).not.toHaveBeenCalled();
   });
 
   it("rejects blank required write text before transport", async () => {
     const deps = dependencies();
 
-    await expect(runCli(["node", "weread", "review", "add", "b", " ", "--json"], deps.value)).resolves.toBe(1);
+    await expect(runCli(["node", "weread-omni", "review", "add", "b", " ", "--json"], deps.value)).resolves.toBe(1);
     expect(deps.stderr.read()).toContain("content");
   });
 
@@ -1458,7 +1471,7 @@ describe("CLI error-format selection", () => {
     // Previously decided by argv.includes("--json"), so a bookId of "--json" after the `--`
     // separator flipped the error format even though the parser never saw the option.
     const written: string[] = [];
-    const code = await runCli(["node", "weread", "shelf", "delete", "--", "--json"], {
+    const code = await runCli(["node", "weread-omni", "shelf", "delete", "--", "--json"], {
       stderr: { write: (chunk: string) => written.push(chunk) } as never,
       isTTY: false,
       getClient: () => ({}) as never,

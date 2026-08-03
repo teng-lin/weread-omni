@@ -45,9 +45,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     # `workflow_dispatch` is available to anyone with write access, so the workflow's own
-    # input validation is not an authorization boundary. Configure required reviewers on the
-    # `npm-publish` environment in repository settings and hold NPM_TOKEN there: a dispatch
-    # then blocks pending approval instead of publishing.
+    # input validation is not an authorization boundary. Required reviewers on the
+    # `npm-publish` environment are: a dispatch blocks pending approval instead of
+    # publishing. The environment is also half of the trust relationship npm checks, so
+    # a job that skipped it could not obtain a credential at all.
     environment: npm-publish
     env:
       RELEASE_TAG: ${{ inputs.tag }}
@@ -188,20 +189,15 @@ jobs:
           node --version
           npm --version
 
-      # The registry credential is scoped to the two steps below that talk to the
-      # registry; no other step in this job can read it. It must be a granular or
-      # automation token (or OIDC trusted publishing) — a legacy token cannot produce
-      # a provenance attestation.
-      - name: Confirm registry authentication
-        run: npm whoami
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+      # Authentication is OIDC trusted publishing: npm exchanges this job's `id-token`
+      # for a short-lived registry credential scoped to this package, this repository,
+      # this workflow file, and the npm-publish environment. There is deliberately no
+      # token fallback -- a misconfigured trust relationship must fail the publish, not
+      # quietly reach for a long-lived credential.
+      #
       # Rechecks and immediately publishes the retained file. Never the working directory.
       - name: Recheck the digest and publish the retained tarball
         run: |
           set -euo pipefail
           test "$(sha512sum "$TARBALL" | cut -d ' ' -f1)" = "$(jq -r .sha512 candidate/candidate-metadata.json)"
           npm publish "$TARBALL" --provenance --access public --tag "$NPM_DIST_TAG"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

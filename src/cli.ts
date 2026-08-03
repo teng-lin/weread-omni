@@ -52,7 +52,7 @@ import { redact, stripErrorPrefix } from "./redact.js";
 
 const loginRecoveryHint = (store: string): string => {
   const selector = STORE_NAME.test(store) ? ` --account ${store}` : "";
-  return `Run weread${selector} login --json, scan the QR codes, then retry.`;
+  return `Run weread-omni${selector} login --json, scan the QR codes, then retry.`;
 };
 
 function authRecoveryHint(error: AuthError, store: string, loginSupported: boolean): string {
@@ -252,7 +252,7 @@ function jsonError(error: unknown, message: string, store: string, loginSupporte
     // machine consumer can act on — and reading it only off `WeReadApiError` left it as prose.
     if (error.ambiguous) payload.ambiguous = true;
   } else if (isAmbiguousImportOutcome(error)) {
-    // `weread import book` can fail after `/cos/notify` with the book still created. Same
+    // `weread-omni import book` can fail after `/cos/notify` with the book still created. Same
     // must-not-retry contract as above, different error taxonomy.
     payload.ambiguous = true;
     payload.phase = error.phase;
@@ -318,7 +318,7 @@ export function createProgram<TClient extends CliOperationsClient = MobileApiCli
     });
   const isTTY = dependencies.isTTY ?? process.stdin.isTTY === true;
   const program = new Command()
-    .name("weread")
+    .name("weread-omni")
     .description("WeChat Reading command line interface")
     .version(CLI_METADATA.version, "-V, --version", "print the installed version")
     .option("--json", "write raw JSON")
@@ -415,11 +415,11 @@ export function createProgram<TClient extends CliOperationsClient = MobileApiCli
       const configured = accountManager.accounts();
       if (configured.length === 1) return configured[0]?.account as string;
       if (configured.length === 0 && create) return "default";
-      if (configured.length === 0) throw new Error("no WeRead accounts are configured; run weread login");
+      if (configured.length === 0) throw new Error("no WeRead accounts are configured; run weread-omni login");
       const preferred = accountManager.defaultAccount();
       if (preferred !== undefined) return preferred;
       throw new Error(
-        `multiple WeRead accounts are configured (${configured.map(({ account }) => account).join(", ")}); pass --account, or set a default with "weread accounts use <alias>"`,
+        `multiple WeRead accounts are configured (${configured.map(({ account }) => account).join(", ")}); pass --account, or set a default with "weread-omni accounts use <alias>"`,
       );
     };
     const accounts = program.command("accounts").description("List configured accounts");
@@ -707,7 +707,7 @@ export async function runCli<TClient extends CliOperationsClient = MobileApiClie
       }
     }
     // Ask the parser, not the raw argv: a positional argument that merely looks like the flag
-    // (weread shelf delete -- --json) must not switch the error format. The argv fallback applies
+    // (weread-omni shelf delete -- --json) must not switch the error format. The argv fallback applies
     // only when construction failed, so there is no parser to ask.
     const json = program ? Boolean(program.opts().json) : argv.includes("--json");
     const message = stripErrorPrefix(redact(error instanceof Error ? error.message : String(error)));
@@ -805,7 +805,7 @@ export async function runAccountCli(
         },
       ];
       if (parsed.accounts.length === 0) {
-        effectiveArgv = [argv[0] ?? "node", argv[1] ?? "weread", "--account", opened.account, ...argv.slice(2)];
+        effectiveArgv = [argv[0] ?? "node", argv[1] ?? "weread-omni", "--account", opened.account, ...argv.slice(2)];
       }
     }
     return await runCli(effectiveArgv, {

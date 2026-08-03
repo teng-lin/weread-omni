@@ -50,9 +50,10 @@ function harness(): {
   };
 }
 
-const run = (deps: CliDependencies, ...args: string[]): Promise<number> => runCli(["node", "weread", ...args], deps);
+const run = (deps: CliDependencies, ...args: string[]): Promise<number> =>
+  runCli(["node", "weread-omni", ...args], deps);
 
-describe("weread library", () => {
+describe("weread-omni library", () => {
   it("reports where content is stored without creating anything", async () => {
     const test = harness();
     rmSync(test.root, { recursive: true, force: true });

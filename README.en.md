@@ -6,7 +6,7 @@
 
 weread-omni is a full-coverage agent skill and unofficial SDK for WeRead. Sign in by QR code and you get 40 read-and-write operations, far beyond the 6 read-only capabilities the official Skill provides.
 
-Those 40 operations have one implementation behind three entry points: the `weread` CLI, where every command can emit JSON; a fully typed TypeScript SDK; and the agent skill bundled in this repo.
+Those 40 operations have one implementation behind three entry points: the `weread-omni` CLI, where every command can emit JSON; a fully typed TypeScript SDK; and the agent skill bundled in this repo.
 
 This project is not affiliated with, endorsed by, or supported by Tencent or WeRead.
 
@@ -28,33 +28,35 @@ You need Node.js `>=22.13.0` and a WeChat account with working WeRead access.
 
 ```bash
 npm install --global weread-omni
-weread login --json
-weread doctor --json
-weread search books "The Three-Body Problem" --json
+weread-omni login --json
+weread-omni doctor --json
+weread-omni search books "The Three-Body Problem" --json
 ```
 
-`weread login` presents a single E-Ink QR code — scan it once with your WeRead account.
+The command is `weread-omni`. `0.1.0` installed it as `weread`, which collides with the official Skill's command, so it was renamed in `0.1.1`. Upgrading does not remove the old `weread` binary — reinstall if you had `0.1.0`.
 
-QR codes and progress go to stderr. On success, the JSON written to stdout contains only the account alias, client ID, `vid`, and device ID—never tokens. `weread doctor` checks the active installation, authentication, and one read-only request.
+`weread-omni login` presents a single E-Ink QR code — scan it once with your WeRead account.
+
+QR codes and progress go to stderr. On success, the JSON written to stdout contains only the account alias, client ID, `vid`, and device ID—never tokens. `weread-omni doctor` checks the active installation, authentication, and one read-only request.
 
 ### Accounts and credentials
 
 The first login without `--account` creates the `default` account. Name additional accounts explicitly:
 
 ```bash
-weread --account work login --json
-weread accounts --json
-weread accounts use work --json
-weread --account default shelf sync --json
+weread-omni --account work login --json
+weread-omni accounts --json
+weread-omni accounts use work --json
+weread-omni --account default shelf sync --json
 ```
 
-An alias must start with a lowercase letter or digit. The remaining characters may be lowercase letters, digits, `-`, or `_`, for a maximum length of 64. If a command omits `--account`, the only configured account is selected automatically. With multiple accounts, `WEREAD_ACCOUNT` takes precedence over the default saved by `weread accounts use <alias>`. If neither selects an account, the CLI asks you to be explicit.
+An alias must start with a lowercase letter or digit. The remaining characters may be lowercase letters, digits, `-`, or `_`, for a maximum length of 64. If a command omits `--account`, the only configured account is selected automatically. With multiple accounts, `WEREAD_ACCOUNT` takes precedence over the default saved by `weread-omni accounts use <alias>`. If neither selects an account, an interactive terminal lists every account and lets you choose by number or alias; non-interactive commands must pass `--account` or set a default.
 
-Credentials live under `~/.config/weread/accounts/<alias>/` by default. Directories use mode `0700`, and files use `0600`. Set `WEREAD_CONFIG_DIR` to move the configuration root. Every `WEREAD_*` variable read by the project is documented in [`.env.example`](https://github.com/teng-lin/weread-omni/blob/v0.1.0/.env.example).
+Credentials live under `~/.config/weread/accounts/<alias>/` by default. Directories use mode `0700`, and files use `0600`. Set `WEREAD_CONFIG_DIR` to move the configuration root. Every `WEREAD_*` variable read by the project is documented in [`.env.example`](https://github.com/teng-lin/weread-omni/blob/v0.1.1/.env.example).
 
 ### Install the agent skill
 
-The bundled `weread` skill teaches an agent to check authentication, call the JSON CLI, follow the correct pagination cursor, and ask before writing. It does not install the `weread` command, so complete the Quickstart first.
+The bundled `weread` skill teaches an agent to check authentication, call the JSON CLI, follow the correct pagination cursor, and ask before writing. It does not install the `weread-omni` command, so complete the Quickstart first.
 
 Install it with the [skills CLI](https://github.com/vercel-labs/skills):
 
@@ -89,18 +91,18 @@ Unset, empty, and whitespace-only values leave writes open, and so does any unre
 
 ## Common commands
 
-Every command supports `--json`. Agents should always request JSON output. Run `weread <command> --help` for the authoritative options.
+Every command supports `--json`. Agents should always request JSON output. Run `weread-omni <command> --help` for the authoritative options.
 
 ### Search and read
 
 ```bash
-weread search books "The Three-Body Problem" --json
-weread book info BOOK_ID --json
-weread book chapters BOOK_ID --json
-weread notes bookmarks BOOK_ID --json
-weread read-data detail --mode annually --json
-weread discover similar BOOK_ID --json
-weread ai ask-book BOOK_ID "What is this book's central argument?" --json
+weread-omni search books "The Three-Body Problem" --json
+weread-omni book info BOOK_ID --json
+weread-omni book chapters BOOK_ID --json
+weread-omni notes bookmarks BOOK_ID --json
+weread-omni read-data detail --mode annually --json
+weread-omni discover similar BOOK_ID --json
+weread-omni ai ask-book BOOK_ID "What is this book's central argument?" --json
 ```
 
 `book chapters` returns the `chapterUid` used by later commands.
@@ -108,12 +110,12 @@ weread ai ask-book BOOK_ID "What is this book's central argument?" --json
 ### Shelf, highlights, and reviews
 
 ```bash
-weread shelf sync --count 50 --json
-weread shelf add BOOK_ID --json
-weread shelf mark-reading BOOK_ID --json
+weread-omni shelf sync --count 50 --json
+weread-omni shelf add BOOK_ID --json
+weread-omni shelf mark-reading BOOK_ID --json
 
-weread notes add-bookmark BOOK_ID CHAPTER_UID "1-20" "text to highlight" --json
-weread review add BOOK_ID "My thoughts after reading" --star 80 --json
+weread-omni notes add-bookmark BOOK_ID CHAPTER_UID "1-20" "text to highlight" --json
+weread-omni review add BOOK_ID "My thoughts after reading" --star 80 --json
 ```
 
 `shelf pin`, `set-private`, `mark-finished`, and `mark-reading` perform the positive action by default. Use `--no-top`, `--no-secret`, `--no-finished`, or `--no-reading` to reverse it. Review ratings must be one of `20`, `40`, `60`, `80`, or `100`.
@@ -123,13 +125,13 @@ weread review add BOOK_ID "My thoughts after reading" --star 80 --json
 Search first and verify the exact `MP_WXS_<digits>` ID before subscribing:
 
 ```bash
-weread search books "PUBLIC_ACCOUNT_NAME" --scope 2 --json
-weread public-accounts subscribe MP_WXS_1234567890 --json
-weread public-accounts articles MP_WXS_1234567890 --count 20 --json
+weread-omni search books "PUBLIC_ACCOUNT_NAME" --scope 2 --json
+weread-omni public-accounts subscribe MP_WXS_1234567890 --json
+weread-omni public-accounts articles MP_WXS_1234567890 --count 20 --json
 
-weread public-accounts feed MP_WXS_1234567890 --format json --out ./account.feed.json --limit 50 --json
-weread public-accounts feed subscriptions --format rss --out ./subscriptions.xml --limit 50 --json
-weread public-accounts export MP_WXS_1234567890 --out ./account-archive --limit 100 --json
+weread-omni public-accounts feed MP_WXS_1234567890 --format json --out ./account.feed.json --limit 50 --json
+weread-omni public-accounts feed subscriptions --format rss --out ./subscriptions.xml --limit 50 --json
+weread-omni public-accounts export MP_WXS_1234567890 --out ./account-archive --limit 100 --json
 ```
 
 Feeds and exports process 20 articles by default, with a maximum `--limit` of 100. They never overwrite an existing file or directory. Article bodies are fetched only from validated HTTPS `mp.weixin.qq.com/s` URLs. JavaScript challenges and CAPTCHAs are reported in diagnostics, not bypassed.
@@ -139,7 +141,7 @@ The protected-article endpoint is wired up, but the recorded live check returned
 ### Import a personal book
 
 ```bash
-weread import book ./my-book.epub --json
+weread-omni import book ./my-book.epub --json
 ```
 
 EPUB, PDF, MOBI, TXT, and AZW3 are supported. The default size limit is 200 MiB; override it with `WEREAD_MAX_UPLOAD_BYTES`.
@@ -149,9 +151,9 @@ EPUB, PDF, MOBI, TXT, and AZW3 are supported. The default size limit is 200 MiB;
 The CLI stores book metadata, tables of contents, and downloaded public-account articles locally by default. A later request for the same content uses the local copy.
 
 ```bash
-weread library path --json
-weread library status --json
-weread library verify --json
+weread-omni library path --json
+weread-omni library status --json
+weread-omni library verify --json
 ```
 
 | Option | Effect |
@@ -179,76 +181,76 @@ This is a command index. All commands accept the global options below; each subc
 
 | Command | Purpose |
 | --- | --- |
-| `weread login` | Log in or re-authenticate the selected account |
-| `weread accounts` | List accounts and client IDs |
-| `weread accounts use <alias>` | Save the account used when `--account` is omitted |
-| `weread whoami` | Show the selected account's redacted identity |
-| `weread doctor` | Check installation, authentication, and connectivity |
-| `weread library path` | Print the local-library path |
-| `weread library status` | Summarize stored content |
-| `weread library verify` | Check the database and stored payloads |
+| `weread-omni login` | Log in or re-authenticate the selected account |
+| `weread-omni accounts` | List accounts and client IDs |
+| `weread-omni accounts use <alias>` | Save the account used when `--account` is omitted |
+| `weread-omni whoami` | Show the selected account's redacted identity |
+| `weread-omni doctor` | Check installation, authentication, and connectivity |
+| `weread-omni library path` | Print the local-library path |
+| `weread-omni library status` | Summarize stored content |
+| `weread-omni library verify` | Check the database and stored payloads |
 
 ### Books and shelf
 
 | Command | Purpose |
 | --- | --- |
-| `weread search books <keyword> [--scope <n>] [--count <n>] [--max-idx <n>]` | Search the catalog; ebooks by default |
-| `weread search suggest <keyword> [--count <n>]` | Return search autocomplete candidates |
-| `weread book info <bookId>` | Get book metadata |
-| `weread book detail <bookId> [--count <n>]` | Get cover artwork and bounded author, publisher, rightsholder, and category catalogs |
-| `weread book chapters <bookId>` | List the table of contents |
-| `weread book progress <bookId>` | Get reading progress |
-| `weread shelf sync [--count <n>] [--offset <n>] [--full]` | Page through the compact shelf; `--full` returns the raw response |
-| `weread shelf add <bookId>` | Add a book to the shelf |
-| `weread shelf delete <bookId> [-y, --yes]` | Remove a book from the shelf |
-| `weread shelf pin <bookId> [--no-top]` | Pin or unpin a book |
-| `weread shelf set-private <bookId> [--no-secret]` | Make a book private or public |
-| `weread shelf mark-finished <bookId> [--no-finished]` | Mark a book finished or undo it |
-| `weread shelf mark-reading <bookId> [--no-reading]` | Mark a book as reading or undo it |
+| `weread-omni search books <keyword> [--scope <n>] [--count <n>] [--max-idx <n>]` | Search the catalog; ebooks by default |
+| `weread-omni search suggest <keyword> [--count <n>]` | Return search autocomplete candidates |
+| `weread-omni book info <bookId>` | Get book metadata |
+| `weread-omni book detail <bookId> [--count <n>]` | Get cover artwork and bounded author, publisher, rightsholder, and category catalogs |
+| `weread-omni book chapters <bookId>` | List the table of contents |
+| `weread-omni book progress <bookId>` | Get reading progress |
+| `weread-omni shelf sync [--count <n>] [--offset <n>] [--full]` | Page through the compact shelf; `--full` returns the raw response |
+| `weread-omni shelf add <bookId>` | Add a book to the shelf |
+| `weread-omni shelf delete <bookId> [-y, --yes]` | Remove a book from the shelf |
+| `weread-omni shelf pin <bookId> [--no-top]` | Pin or unpin a book |
+| `weread-omni shelf set-private <bookId> [--no-secret]` | Make a book private or public |
+| `weread-omni shelf mark-finished <bookId> [--no-finished]` | Mark a book finished or undo it |
+| `weread-omni shelf mark-reading <bookId> [--no-reading]` | Mark a book as reading or undo it |
 
 ### Public accounts
 
 | Command | Purpose |
 | --- | --- |
-| `weread public-accounts subscriptions [--count <n>] [--offset <n>]` | Page through subscribed public accounts |
-| `weread public-accounts articles <accountId> [--count <n>] [--synckey <n>] [--offset <n>]` | Page through articles; `--synckey` starts a delta refresh and conflicts with `--offset` |
-| `weread public-accounts resolve-article <docUrl>` | Resolve an article URL to its WeRead review ID |
-| `weread public-accounts paid-content <docUrl>` | Attempt to fetch an entitled protected article |
-| `weread public-accounts subscribe <accountId>` | Subscribe to a public account |
-| `weread public-accounts unsubscribe <accountId> [-y, --yes]` | Unsubscribe from a public account |
-| `weread public-accounts feed <accountId\|subscriptions> --format <rss\|atom\|json> --out <file> [--limit <n>]` | Create a feed file |
-| `weread public-accounts export <accountId> --out <directory> [--limit <n>]` | Create an article export directory |
+| `weread-omni public-accounts subscriptions [--count <n>] [--offset <n>]` | Page through subscribed public accounts |
+| `weread-omni public-accounts articles <accountId> [--count <n>] [--synckey <n>] [--offset <n>]` | Page through articles; `--synckey` starts a delta refresh and conflicts with `--offset` |
+| `weread-omni public-accounts resolve-article <docUrl>` | Resolve an article URL to its WeRead review ID |
+| `weread-omni public-accounts paid-content <docUrl>` | Attempt to fetch an entitled protected article |
+| `weread-omni public-accounts subscribe <accountId>` | Subscribe to a public account |
+| `weread-omni public-accounts unsubscribe <accountId> [-y, --yes]` | Unsubscribe from a public account |
+| `weread-omni public-accounts feed <accountId\|subscriptions> --format <rss\|atom\|json> --out <file> [--limit <n>]` | Create a feed file |
+| `weread-omni public-accounts export <accountId> --out <directory> [--limit <n>]` | Create an article export directory |
 
 ### Notes and reviews
 
 | Command | Purpose |
 | --- | --- |
-| `weread notes notebooks [--count <n>] [--last-sort <n>]` | List books with notes |
-| `weread notes recent [--count <n>]` | List recent notes and highlights |
-| `weread notes bookmarks <bookId> [--synckey <n>]` | List your highlights with their text |
-| `weread notes mine <bookId> [--synckey <n>] [--count <n>]` | List your notes for a book |
-| `weread notes best <bookId> [--synckey <n>] [--count <n>] [--max-idx <n>] [--chapter-uid <n>]` | List popular highlights |
-| `weread notes read-reviews <bookId> <chapterUid> --reviews <json>` | Read thoughts under popular-highlight ranges |
-| `weread notes underlines <bookId> <chapterUid> [--synckey <n>]` | Get per-chapter highlight statistics without text |
-| `weread notes add-bookmark <bookId> <chapterUid> <range> <markText> [--type <n>] [--style <n>] [--color-style <n>] [--book-version <n>] [--chapter-name <name>] [--context-abstract <text>]` | Add a highlight |
-| `weread notes update-bookmark <bookmarkId> --style <n> [--color-style <n>]` | Change a highlight's style |
-| `weread notes remove-bookmark <bookmarkId> [-y, --yes]` | Remove one of your highlights |
-| `weread review list <bookId> [--list-type <n>] [--list-mode <n>] [--mine <n>] [--synckey <n>] [--count <n>] [--max-idx <n>]` | List reviews |
-| `weread review single <reviewId> [--comments-count <n>] [--comments-direction <n>] [--likes-count <n>] [--likes-direction <n>] [--synckey <n>]` | Get one thought or review |
-| `weread review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>]` | Post a review or thought |
-| `weread review edit <reviewId> <content>` | Edit one of your reviews or thoughts |
-| `weread review delete <reviewId> [-y, --yes]` | Delete a review |
+| `weread-omni notes notebooks [--count <n>] [--last-sort <n>]` | List books with notes |
+| `weread-omni notes recent [--count <n>]` | List recent notes and highlights |
+| `weread-omni notes bookmarks <bookId> [--synckey <n>]` | List your highlights with their text |
+| `weread-omni notes mine <bookId> [--synckey <n>] [--count <n>]` | List your notes for a book |
+| `weread-omni notes best <bookId> [--synckey <n>] [--count <n>] [--max-idx <n>] [--chapter-uid <n>]` | List popular highlights |
+| `weread-omni notes read-reviews <bookId> <chapterUid> --reviews <json>` | Read thoughts under popular-highlight ranges |
+| `weread-omni notes underlines <bookId> <chapterUid> [--synckey <n>]` | Get per-chapter highlight statistics without text |
+| `weread-omni notes add-bookmark <bookId> <chapterUid> <range> <markText> [--type <n>] [--style <n>] [--color-style <n>] [--book-version <n>] [--chapter-name <name>] [--context-abstract <text>]` | Add a highlight |
+| `weread-omni notes update-bookmark <bookmarkId> --style <n> [--color-style <n>]` | Change a highlight's style |
+| `weread-omni notes remove-bookmark <bookmarkId> [-y, --yes]` | Remove one of your highlights |
+| `weread-omni review list <bookId> [--list-type <n>] [--list-mode <n>] [--mine <n>] [--synckey <n>] [--count <n>] [--max-idx <n>]` | List reviews |
+| `weread-omni review single <reviewId> [--comments-count <n>] [--comments-direction <n>] [--likes-count <n>] [--likes-direction <n>] [--synckey <n>]` | Get one thought or review |
+| `weread-omni review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>]` | Post a review or thought |
+| `weread-omni review edit <reviewId> <content>` | Edit one of your reviews or thoughts |
+| `weread-omni review delete <reviewId> [-y, --yes]` | Delete a review |
 
 ### Statistics, discovery, AI, and import
 
 | Command | Purpose |
 | --- | --- |
-| `weread read-data detail [--mode <mode>] [--base-time <n>]` | Get reading statistics |
-| `weread discover recommend [--count <n>] [--max-idx <n>]` | Get book recommendations |
-| `weread discover similar <bookId> [--count <n>] [--max-idx <n>] [--session-id <id>]` | Find similar books |
-| `weread ai ask-book <bookId> <query> [--intent <intent>] [--max-polls <n>] [--delay-cap-ms <ms>]` | Ask WeRead AI about a book |
-| `weread ai suggest <bookId> [--chapter-uid <n>] [--toolbar] [--range <range>] [--mp-review-id <id>]` | Get suggested questions |
-| `weread import book <path>` | Import a personal book |
+| `weread-omni read-data detail [--mode <mode>] [--base-time <n>]` | Get reading statistics |
+| `weread-omni discover recommend [--count <n>] [--max-idx <n>]` | Get book recommendations |
+| `weread-omni discover similar <bookId> [--count <n>] [--max-idx <n>] [--session-id <id>]` | Find similar books |
+| `weread-omni ai ask-book <bookId> <query> [--intent <intent>] [--max-polls <n>] [--delay-cap-ms <ms>]` | Ask WeRead AI about a book |
+| `weread-omni ai suggest <bookId> [--chapter-uid <n>] [--toolbar] [--range <range>] [--mp-review-id <id>]` | Get suggested questions |
+| `weread-omni import book <path>` | Import a personal book |
 
 ### Search scopes and paging
 

@@ -46,7 +46,7 @@ describe("write gate defaults", () => {
   });
 
   // Upload was opt-in only because enabling it made the MCP server demand S3 storage and refuse to
-  // start without it. With that server gone, `weread import book` uploads straight to WeRead, so
+  // start without it. With that server gone, `weread-omni import book` uploads straight to WeRead, so
   // it is an ordinary write like the rest.
   it("permits personal-book import by default", () => {
     expect(operationEnabled("import.book", {})).toBe(true);
@@ -92,7 +92,7 @@ describe("default account selection", () => {
     const manager = new AccountManager({ env: temporaryEnv("personal", "work") });
     expect(() => manager.select()).toThrow(AuthError);
     expect(() => manager.select()).toThrow(/personal, work/);
-    expect(() => manager.select()).toThrow(/weread accounts use <alias>/);
+    expect(() => manager.select()).toThrow(/weread-omni accounts use <alias>/);
   });
 
   it("uses the recorded default once one is set", () => {

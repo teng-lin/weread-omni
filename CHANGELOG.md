@@ -9,6 +9,20 @@ CLI surface is **experimental** and may change in a minor release.
 
 ## [Unreleased]
 
+## [0.1.1]
+
+### Changed
+
+- **The CLI command is now `weread-omni`.** The official WeRead Agent Skill
+  installs a `weread` command, so shipping our own meant whichever package was
+  installed second silently won the name. Anyone who installed `0.1.0` should
+  reinstall; the old `weread` binary is not removed by upgrading.
+- Recovery hints name the new command, so a copied suggestion works as printed.
+
+Credential and library locations are untouched: `~/.config/weread/` and
+`~/.local/share/weread/library` keep an existing login and cached content. The
+projected tool names, the upstream host, and the bundled skill are unchanged.
+
 ## [0.1.0]
 
 First public release.
@@ -32,13 +46,13 @@ First public release.
   Chapter bodies are stored the same way, but only when the configured client
   serves them. The library is on by default; `--refresh` refetches and
   `--no-library` opts out per command.
-  `weread library path|status|verify` inspect it. Records live in SQLite under
+  `weread-omni library path|status|verify` inspect it. Records live in SQLite under
   `WEREAD_LIBRARY_DIR` (default `~/.local/share/weread/library`) and payloads in
   a content-addressed file store beside it. Failed article retrievals are not
   stored, and locked chapter previews read as misses so they can be refetched.
-- **CLI** (`weread`). Every SDK operation has human-readable and JSON output.
-  `weread doctor` validates the installed package and selected credentials;
-  `weread login` stores credentials at mode `0600`.
+- **CLI** (`weread-omni`). Every SDK operation has human-readable and JSON output.
+  `weread-omni doctor` validates the installed package and selected credentials;
+  `weread-omni login` stores credentials at mode `0600`.
 - **Agent skill.** The packaged skill under `skills/` drives the JSON CLI,
   checks login state, follows operation-specific pagination, and asks before
   writes.
@@ -52,13 +66,13 @@ First public release.
 - **Public-account feeds and archives.** Scoped search, subscriptions, article
   history, RSS, Atom, JSON Feed, and no-overwrite directory exports include
   completeness diagnostics and strict source-URL validation.
-  `publicAccounts.paidContent` (`weread public-accounts paid-content`) asks the
+  `publicAccounts.paidContent` (`weread-omni public-accounts paid-content`) asks the
   entitlement endpoint for protected article bodies. Feed and export use it for
   `payType` 2, follow upstream substitute URLs for unentitled accounts, and
   fall back to the public URL with a diagnostic when lookup fails.
 - **Write policy.** Every operation is permitted by default; setting
   `WEREAD_READONLY` to `1` closes every write at once. Reads are never gated.
-- **Book import.** `weread import book` uploads EPUB, PDF, MOBI, TXT, and AZW3
+- **Book import.** `weread-omni import book` uploads EPUB, PDF, MOBI, TXT, and AZW3
   files to the shelf, checking extension and size first.
   WeRead's upstream import protocol ultimately sends a completed import to
   Tencent COS; Tencent COS is not the upload service's configurable backend.
@@ -69,7 +83,7 @@ First public release.
   which sits behind `--experimental-sqlite` on earlier releases.
 - `WeReadClient` is the canonical client: all 40 operations run on the E-Ink
   backend, and a failed request never falls back to a second one.
-- `weread login` runs the E-Ink QR flow and creates an account on the built-in
+- `weread-omni login` runs the E-Ink QR flow and creates an account on the built-in
   `eink` client. Accounts are prepared with the CLI; there is no login tool.
 - `createEinkClient()` returns the same `MobileApiClient` the built-in client
   uses. Android, iOS, and browser-session implementations can be supplied as
@@ -122,5 +136,6 @@ First public release.
 - This is an unofficial client. It is not affiliated with, endorsed by, or
   supported by Tencent or WeRead. See the legal section of the README.
 
-[Unreleased]: https://github.com/teng-lin/weread-omni/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/teng-lin/weread-omni/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/teng-lin/weread-omni/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/teng-lin/weread-omni/releases/tag/v0.1.0

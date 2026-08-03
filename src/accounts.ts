@@ -148,12 +148,12 @@ export class AccountManager {
       return selected;
     }
     const configured = listAccountAliases(this.#env);
-    if (configured.length === 0) throw new AuthError("no WeRead accounts are configured; run weread login");
+    if (configured.length === 0) throw new AuthError("no WeRead accounts are configured; run weread-omni login");
     if (configured.length === 1) return configured;
     const preferred = this.defaultAccount();
     if (preferred !== undefined) return [preferred];
     throw new AuthError(
-      `multiple WeRead accounts are configured (${configured.join(", ")}); pass --account, or set a default with "weread accounts use <alias>"`,
+      `multiple WeRead accounts are configured (${configured.join(", ")}); pass --account, or set a default with "weread-omni accounts use <alias>"`,
     );
   }
 

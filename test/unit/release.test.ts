@@ -31,7 +31,7 @@ describe("release artifacts", () => {
 
     expect(manifest.name).toBe("weread-omni");
     expect(manifest.engines.node).toBe(">=22.13.0");
-    expect(manifest.bin).toEqual({ weread: "./dist/cli.js" });
+    expect(manifest.bin).toEqual({ "weread-omni": "./dist/cli.js" });
     expect(manifest.files).toEqual([
       "dist",
       "docs",
@@ -112,7 +112,7 @@ describe("release artifacts", () => {
     }
     expect(readme).toContain("非官方");
     expect(readme).toContain("chapters(bookId)");
-    expect(readme).toContain("weread accounts");
+    expect(readme).toContain("weread-omni accounts");
     expect(readme).toContain("AccountManager");
     expect(readme).toContain("[更新日志](CHANGELOG.md)");
     expect(readme).toContain("[安全政策](SECURITY.md)");
@@ -123,7 +123,7 @@ describe("release artifacts", () => {
     }
     expect(english).toContain("unofficial");
     expect(english).toContain("chapters(bookId)");
-    expect(english).toContain("weread accounts");
+    expect(english).toContain("weread-omni accounts");
     expect(english).toContain("AccountManager");
     expect(english).toContain("[Changelog](CHANGELOG.md)");
     expect(english).toContain("[Security policy](SECURITY.md)");
@@ -133,6 +133,20 @@ describe("release artifacts", () => {
   // This checks only the second. The earlier version of this ban covered the two READMEs, which is
   // how SKILL.md and SECURITY.md kept naming the five removed write gates through three refactors --
   // SKILL.md being the file an agent actually reads at runtime.
+  // The CLI is `weread-omni`; the bundled skill is still `weread`. A rename sweep that cannot tell
+  // them apart produces an install command for a skill that does not exist -- which is exactly what
+  // happened, and what only a reader comparing two adjacent lines would have caught.
+  it("installs a skill that the repository actually ships", async () => {
+    for (const doc of ["README.md", "README.en.md"]) {
+      const referenced = [...(await text(doc)).matchAll(/--skill\s+(\S+)/g)].map(([, name]) => name);
+      expect(referenced.length, `${doc} documents no skill install`).toBeGreaterThan(0);
+      for (const name of referenced) {
+        const skill = await text(`skills/${name}/SKILL.md`);
+        expect(skill, `${doc} installs --skill ${name}`).toContain(`name: ${name}`);
+      }
+    }
+  });
+
   it("names no removed configuration in any shipped document", async () => {
     const removed = [
       "WEREAD_ALLOW_",
@@ -155,7 +169,7 @@ describe("release artifacts", () => {
     expect(await text("LICENSE")).toMatch(/MIT License[\s\S]*Permission is hereby granted/);
   });
 
-  it("records the complete first public release with no pending changes", async () => {
+  it("records every release, with no pending changes", async () => {
     const changelog = await text("CHANGELOG.md");
     const manifest = JSON.parse(await text("package.json")) as { version: string };
 
@@ -164,9 +178,12 @@ describe("release artifacts", () => {
     const current = changelog.indexOf(`## [${manifest.version}]`);
     expect(unreleased?.index).toBe(changelog.search(/^## \[/m));
     expect(unreleased?.[1]?.trim()).toBe("");
+    // The shipping version has to have its own section, immediately after Unreleased.
     expect(current).toBeGreaterThan(unreleased?.index ?? -1);
-    const next = changelog.indexOf("\n## [", current + 1);
-    const release = changelog.slice(current, next < 0 ? undefined : next);
+    // The initial release keeps describing the whole surface, whatever ships later.
+    const first = changelog.indexOf("## [0.1.0]");
+    const firstNext = changelog.indexOf("\n## [", first + 1);
+    const release = changelog.slice(first, firstNext < 0 ? undefined : firstNext);
     expect(release).toContain("MobileApiClient");
     expect(release).toContain("WEREAD_PLUGINS");
     expect(release).toContain("incremental deltas");
@@ -328,7 +345,7 @@ describe("release artifacts", () => {
     expect(packSmoke).toContain("node-version: 22.13.0");
     expect(packSmoke).toContain("npm install --engine-strict --ignore-scripts --no-audit --no-fund");
     expect(packSmoke).toContain('await Promise.all(["weread-omni", "weread-omni/cli"]');
-    expect(packSmoke).toContain("./node_modules/.bin/weread --help");
+    expect(packSmoke).toContain("./node_modules/.bin/weread-omni --help");
   });
 
   it("pins every external workflow action to a commit", async () => {
@@ -481,7 +498,6 @@ describe("release artifacts", () => {
 
     const identity = workflow.indexOf("- name: Verify the retained package identity and digest");
     const tooling = workflow.indexOf("actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020");
-    const auth = workflow.indexOf("- name: Confirm registry authentication");
     const publish = workflow.indexOf("- name: Recheck the digest and publish the retained tarball");
     const sourceIdentity = workflow.indexOf('source.name !== "weread-omni"');
     // biome-ignore lint/suspicious/noTemplateCurlyInString: asserting the literal workflow script
@@ -489,15 +505,14 @@ describe("release artifacts", () => {
     const canonicalTarball = workflow.indexOf("metadata.tarball !== expectedTarball");
     const resolveTarball = workflow.indexOf('resolve("candidate", expectedTarball)');
     const exportTarball = workflow.indexOf("appendFileSync(process.env.GITHUB_ENV");
-    expect([identity, tooling, auth, publish].every((index) => index >= 0)).toBe(true);
+    expect([identity, tooling, publish].every((index) => index >= 0)).toBe(true);
     expect(identity).toBeLessThan(sourceIdentity);
     expect(sourceIdentity).toBeLessThan(versionIdentity);
     expect(versionIdentity).toBeLessThan(canonicalTarball);
     expect(canonicalTarball).toBeLessThan(resolveTarball);
     expect(resolveTarball).toBeLessThan(exportTarball);
     expect(identity).toBeLessThan(tooling);
-    expect(tooling).toBeLessThan(auth);
-    expect(auth).toBeLessThan(publish);
+    expect(tooling).toBeLessThan(publish);
     expect(workflow.slice(publish)).toContain(
       'npm publish "$TARBALL" --provenance --access public --tag "$NPM_DIST_TAG"',
     );
@@ -542,12 +557,15 @@ describe("release artifacts", () => {
     // gate is a protected Environment holding the registry token.
     expect(workflow).toContain("environment: npm-publish");
 
-    // The registry token is exposed to the authentication and publish steps only.
-    // biome-ignore lint/suspicious/noTemplateCurlyInString: asserting the literal GitHub Actions secret expression
-    const authToken = "NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}";
-    expect(workflow).toContain(authToken);
-    expect(countOccurrences(workflow, authToken)).toBe(2);
-    expect(countOccurrences(workflow, "NODE_AUTH_TOKEN")).toBe(2);
+    // Authentication is OIDC trusted publishing, so there must be no token fallback at
+    // all. A workflow that still carries one would silently keep working after the trust
+    // relationship was revoked, which is the failure this asserts away.
+    expect(workflow).not.toContain("NODE_AUTH_TOKEN");
+    expect(workflow).not.toContain("NPM_TOKEN");
+    expect(workflow).not.toContain("npm whoami");
+    // The credential npm exchanges the id-token for is scoped by these two.
+    expect(workflow).toContain("id-token: write");
+    expect(workflow).toContain("environment: npm-publish");
   });
 
   it("ships an explicit first-publish and Trusted Publishing runbook", async () => {
