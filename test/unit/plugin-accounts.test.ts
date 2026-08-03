@@ -277,7 +277,7 @@ describe("client plugins and account storage", () => {
     const loginStatus = sink();
 
     await expect(
-      runAccountCli(["node", "weread", "--account", "work", "login", "--client", "mobile", "--json"], {
+      runAccountCli(["node", "weread-omni", "--account", "work", "login", "--client", "mobile", "--json"], {
         accountManager: manager,
         env,
         stdout: loginOut.stream,
@@ -290,7 +290,7 @@ describe("client plugins and account storage", () => {
 
     const commandOut = sink();
     await expect(
-      runAccountCli(["node", "weread", "book", "info", "book", "--json"], {
+      runAccountCli(["node", "weread-omni", "book", "info", "book", "--json"], {
         accountManager: manager,
         env,
         stdout: commandOut.stream,

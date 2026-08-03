@@ -6,7 +6,7 @@
 
 weread-omni 是微信读书的全能智能体技能和非官方 SDK。微信扫码即可用，支持 40 项读写操作，远超官方支持的 6 项只读技能。
 
-40 项操作只有一套实现，三个入口共用：`weread` 命令行，每条命令都能输出 JSON；一套类型完整的 TypeScript SDK；还有仓库自带的 agent skill。
+40 项操作只有一套实现，三个入口共用：`weread-omni` 命令行，每条命令都能输出 JSON；一套类型完整的 TypeScript SDK；还有仓库自带的 agent skill。
 
 这是一个非官方项目，与腾讯及微信读书没有隶属关系，也未获得其认可或支持。
 
@@ -28,14 +28,14 @@ weread-omni 是微信读书的全能智能体技能和非官方 SDK。微信扫�
 
 ```bash
 npm install --global weread-omni
-weread login --json
-weread doctor --json
-weread search books "三体" --json
+weread-omni login --json
+weread-omni doctor --json
+weread-omni search books "三体" --json
 ```
 
-`weread login` 显示一个二维码，用微信读书账号扫一次即可。
+`weread-omni login` 显示一个二维码，用微信读书账号扫一次即可。
 
-登录成功后的 JSON 只包含账号别名、客户端 ID、`vid` 和设备 ID，不包含任何令牌。`weread doctor` 会核对当前安装和登录状态，并发起一次只读请求确认连接正常。
+登录成功后的 JSON 只包含账号别名、客户端 ID、`vid` 和设备 ID，不包含任何令牌。`weread-omni doctor` 会核对当前安装和登录状态，并发起一次只读请求确认连接正常。
 
 
 ### 账号与登录信息
@@ -43,19 +43,19 @@ weread search books "三体" --json
 第一次不带 `--account` 登录时，账号别名为 `default`。要添加其他账号，可以自己指定别名：
 
 ```bash
-weread --account work login --json
-weread accounts --json
-weread accounts use work --json
-weread --account default shelf sync --json
+weread-omni --account work login --json
+weread-omni accounts --json
+weread-omni accounts use work --json
+weread-omni --account default shelf sync --json
 ```
 
-账号别名的首字符必须是小写字母或数字，后面可以使用小写字母、数字、`-` 和 `_`，总长不超过 64 个字符。命令没有指定 `--account` 时，只有一个账号就直接使用它；有多个账号时，先读取 `WEREAD_ACCOUNT`，再读取 `weread accounts use <alias>` 保存的默认账号。两者都没有设置时，命令会要求你明确选择。
+账号别名的首字符必须是小写字母或数字，后面可以使用小写字母、数字、`-` 和 `_`，总长不超过 64 个字符。命令没有指定 `--account` 时，只有一个账号就直接使用它；有多个账号时，先读取 `WEREAD_ACCOUNT`，再读取 `weread-omni accounts use <alias>` 保存的默认账号。两者都没有设置时，命令会要求你明确选择。
 
 登录信息默认保存在 `~/.config/weread/accounts/<alias>/`。目录权限为 `0700`，文件权限为 `0600`。设置 `WEREAD_CONFIG_DIR` 可以更改配置目录。项目读取的 `WEREAD_*` 变量都列在 [`.env.example`](https://github.com/teng-lin/weread-omni/blob/v0.1.0/.env.example) 中。
 
 ### 安装 agent skill
 
-仓库附带的 `weread` skill 会告诉 agent 怎样检查登录状态、调用 JSON CLI、正确翻页，并在写操作前向你确认。它不会安装 `weread` 命令，因此要先完成上面的安装和登录。
+仓库附带的 `weread-omni` skill 会告诉 agent 怎样检查登录状态、调用 JSON CLI、正确翻页，并在写操作前向你确认。它不会安装 `weread-omni` 命令，因此要先完成上面的安装和登录。
 
 使用 [skills CLI](https://github.com/vercel-labs/skills) 安装：
 
@@ -80,18 +80,18 @@ npx skills update weread
 
 ## 常用命令
 
-所有命令都支持 `--json`。给 agent 调用时建议始终使用 JSON 输出。完整参数以 `weread <命令> --help` 为准。
+所有命令都支持 `--json`。给 agent 调用时建议始终使用 JSON 输出。完整参数以 `weread-omni <命令> --help` 为准。
 
 ### 搜索与阅读
 
 ```bash
-weread search books "三体" --json
-weread book info BOOK_ID --json
-weread book chapters BOOK_ID --json
-weread notes bookmarks BOOK_ID --json
-weread read-data detail --mode annually --json
-weread discover similar BOOK_ID --json
-weread ai ask-book BOOK_ID "这本书的核心论点是什么？" --json
+weread-omni search books "三体" --json
+weread-omni book info BOOK_ID --json
+weread-omni book chapters BOOK_ID --json
+weread-omni notes bookmarks BOOK_ID --json
+weread-omni read-data detail --mode annually --json
+weread-omni discover similar BOOK_ID --json
+weread-omni ai ask-book BOOK_ID "这本书的核心论点是什么？" --json
 ```
 
 `book chapters` 返回后续命令需要的 `chapterUid`。
@@ -99,12 +99,12 @@ weread ai ask-book BOOK_ID "这本书的核心论点是什么？" --json
 ### 书架、划线与点评
 
 ```bash
-weread shelf sync --count 50 --json
-weread shelf add BOOK_ID --json
-weread shelf mark-reading BOOK_ID --json
+weread-omni shelf sync --count 50 --json
+weread-omni shelf add BOOK_ID --json
+weread-omni shelf mark-reading BOOK_ID --json
 
-weread notes add-bookmark BOOK_ID CHAPTER_UID "1-20" "要划线的原文" --json
-weread review add BOOK_ID "读完后的想法" --star 80 --json
+weread-omni notes add-bookmark BOOK_ID CHAPTER_UID "1-20" "要划线的原文" --json
+weread-omni review add BOOK_ID "读完后的想法" --star 80 --json
 ```
 
 `shelf pin`、`set-private`、`mark-finished` 和 `mark-reading` 默认会置顶、设为私密、标记读完或标记在读。分别加 `--no-top`、`--no-secret`、`--no-finished` 或 `--no-reading` 可以取消对应状态。点评星级只能填 `20`、`40`、`60`、`80`、`100`，对应一到五星。
@@ -114,13 +114,13 @@ weread review add BOOK_ID "读完后的想法" --star 80 --json
 订阅前先搜索并核对准确的 `MP_WXS_<数字>` ID：
 
 ```bash
-weread search books "公众号名称" --scope 2 --json
-weread public-accounts subscribe MP_WXS_1234567890 --json
-weread public-accounts articles MP_WXS_1234567890 --count 20 --json
+weread-omni search books "公众号名称" --scope 2 --json
+weread-omni public-accounts subscribe MP_WXS_1234567890 --json
+weread-omni public-accounts articles MP_WXS_1234567890 --count 20 --json
 
-weread public-accounts feed MP_WXS_1234567890 --format json --out ./account.feed.json --limit 50 --json
-weread public-accounts feed subscriptions --format rss --out ./subscriptions.xml --limit 50 --json
-weread public-accounts export MP_WXS_1234567890 --out ./account-archive --limit 100 --json
+weread-omni public-accounts feed MP_WXS_1234567890 --format json --out ./account.feed.json --limit 50 --json
+weread-omni public-accounts feed subscriptions --format rss --out ./subscriptions.xml --limit 50 --json
+weread-omni public-accounts export MP_WXS_1234567890 --out ./account-archive --limit 100 --json
 ```
 
 Feed 和导出默认处理 20 篇文章，`--limit` 最大为 100。命令不会覆盖已有文件或目录。文章正文只会从经过校验的 HTTPS `mp.weixin.qq.com/s` 地址下载；遇到 JavaScript 验证或验证码时会把情况记进诊断信息，不会尝试绕过。
@@ -128,7 +128,7 @@ Feed 和导出默认处理 20 篇文章，`--limit` 最大为 100。命令不会
 ### 导入个人书籍
 
 ```bash
-weread import book ./my-book.epub --json
+weread-omni import book ./my-book.epub --json
 ```
 
 支持 EPUB、PDF、MOBI、TXT 和 AZW3。单个文件默认不超过 200 MiB，可以用 `WEREAD_MAX_UPLOAD_BYTES` 调整。
@@ -138,9 +138,9 @@ weread import book ./my-book.epub --json
 CLI 默认把图书信息、目录和已经下载的公众号文章保存到本地。再次读取相同内容时会直接使用本地副本。
 
 ```bash
-weread library path --json
-weread library status --json
-weread library verify --json
+weread-omni library path --json
+weread-omni library status --json
+weread-omni library verify --json
 ```
 
 | 选项 | 作用 |
@@ -168,76 +168,76 @@ weread library verify --json
 
 | 命令 | 用途 |
 | --- | --- |
-| `weread login` | 登录或重新登录所选账号 |
-| `weread accounts` | 列出账号及客户端 ID |
-| `weread accounts use <alias>` | 设置省略 `--account` 时默认用哪个账号 |
-| `weread whoami` | 显示所选账号的身份信息：`vid`、设备 ID 和凭据来源，不含令牌 |
-| `weread doctor` | 检查安装、登录和连接状态 |
-| `weread library path` | 显示本地内容库路径 |
-| `weread library status` | 统计本地内容库中的内容 |
-| `weread library verify` | 检查数据库和已保存文件 |
+| `weread-omni login` | 登录或重新登录所选账号 |
+| `weread-omni accounts` | 列出账号及客户端 ID |
+| `weread-omni accounts use <alias>` | 设置省略 `--account` 时默认用哪个账号 |
+| `weread-omni whoami` | 显示所选账号的身份信息：`vid`、设备 ID 和凭据来源，不含令牌 |
+| `weread-omni doctor` | 检查安装、登录和连接状态 |
+| `weread-omni library path` | 显示本地内容库路径 |
+| `weread-omni library status` | 统计本地内容库中的内容 |
+| `weread-omni library verify` | 检查数据库和已保存文件 |
 
 ### 图书与书架
 
 | 命令 | 用途 |
 | --- | --- |
-| `weread search books <keyword> [--scope <n>] [--count <n>] [--max-idx <n>]` | 搜索书城，默认范围为电子书 |
-| `weread search suggest <keyword> [--count <n>]` | 获取搜索自动补全词 |
-| `weread book info <bookId>` | 查看图书信息 |
-| `weread book detail <bookId> [--count <n>]` | 查看书籍配图，以及同作者、同出版社、同版权方、同分类的书单 |
-| `weread book chapters <bookId>` | 查看目录 |
-| `weread book progress <bookId>` | 查看阅读进度 |
-| `weread shelf sync [--count <n>] [--offset <n>] [--full]` | 分页查看精简书架；`--full` 返回原始响应 |
-| `weread shelf add <bookId>` | 加入书架 |
-| `weread shelf delete <bookId> [-y, --yes]` | 从书架删除 |
-| `weread shelf pin <bookId> [--no-top]` | 置顶或取消置顶 |
-| `weread shelf set-private <bookId> [--no-secret]` | 设为私密或公开 |
-| `weread shelf mark-finished <bookId> [--no-finished]` | 标记读完或撤销 |
-| `weread shelf mark-reading <bookId> [--no-reading]` | 标记在读或撤销 |
+| `weread-omni search books <keyword> [--scope <n>] [--count <n>] [--max-idx <n>]` | 搜索书城，默认范围为电子书 |
+| `weread-omni search suggest <keyword> [--count <n>]` | 获取搜索自动补全词 |
+| `weread-omni book info <bookId>` | 查看图书信息 |
+| `weread-omni book detail <bookId> [--count <n>]` | 查看书籍配图，以及同作者、同出版社、同版权方、同分类的书单 |
+| `weread-omni book chapters <bookId>` | 查看目录 |
+| `weread-omni book progress <bookId>` | 查看阅读进度 |
+| `weread-omni shelf sync [--count <n>] [--offset <n>] [--full]` | 分页查看精简书架；`--full` 返回原始响应 |
+| `weread-omni shelf add <bookId>` | 加入书架 |
+| `weread-omni shelf delete <bookId> [-y, --yes]` | 从书架删除 |
+| `weread-omni shelf pin <bookId> [--no-top]` | 置顶或取消置顶 |
+| `weread-omni shelf set-private <bookId> [--no-secret]` | 设为私密或公开 |
+| `weread-omni shelf mark-finished <bookId> [--no-finished]` | 标记读完或撤销 |
+| `weread-omni shelf mark-reading <bookId> [--no-reading]` | 标记在读或撤销 |
 
 ### 公众号
 
 | 命令 | 用途 |
 | --- | --- |
-| `weread public-accounts subscriptions [--count <n>] [--offset <n>]` | 分页查看已订阅公众号 |
-| `weread public-accounts articles <accountId> [--count <n>] [--synckey <n>] [--offset <n>]` | 分页查看文章；增量刷新可传 `--synckey`，但不能和 `--offset` 同时使用 |
-| `weread public-accounts resolve-article <docUrl>` | 从文章链接解析微信读书点评 ID |
-| `weread public-accounts paid-content <docUrl>` | 尝试读取有权限的付费文章正文 |
-| `weread public-accounts subscribe <accountId>` | 订阅公众号 |
-| `weread public-accounts unsubscribe <accountId> [-y, --yes]` | 取消订阅 |
-| `weread public-accounts feed <accountId\|subscriptions> --format <rss\|atom\|json> --out <file> [--limit <n>]` | 新建 Feed 文件 |
-| `weread public-accounts export <accountId> --out <directory> [--limit <n>]` | 新建文章导出目录 |
+| `weread-omni public-accounts subscriptions [--count <n>] [--offset <n>]` | 分页查看已订阅公众号 |
+| `weread-omni public-accounts articles <accountId> [--count <n>] [--synckey <n>] [--offset <n>]` | 分页查看文章；增量刷新可传 `--synckey`，但不能和 `--offset` 同时使用 |
+| `weread-omni public-accounts resolve-article <docUrl>` | 从文章链接解析微信读书点评 ID |
+| `weread-omni public-accounts paid-content <docUrl>` | 尝试读取有权限的付费文章正文 |
+| `weread-omni public-accounts subscribe <accountId>` | 订阅公众号 |
+| `weread-omni public-accounts unsubscribe <accountId> [-y, --yes]` | 取消订阅 |
+| `weread-omni public-accounts feed <accountId\|subscriptions> --format <rss\|atom\|json> --out <file> [--limit <n>]` | 新建 Feed 文件 |
+| `weread-omni public-accounts export <accountId> --out <directory> [--limit <n>]` | 新建文章导出目录 |
 
 ### 笔记与点评
 
 | 命令 | 用途 |
 | --- | --- |
-| `weread notes notebooks [--count <n>] [--last-sort <n>]` | 查看有笔记的书 |
-| `weread notes recent [--count <n>]` | 查看最近的笔记和划线 |
-| `weread notes bookmarks <bookId> [--synckey <n>]` | 查看自己的划线及原文 |
-| `weread notes mine <bookId> [--synckey <n>] [--count <n>]` | 查看自己的笔记 |
-| `weread notes best <bookId> [--synckey <n>] [--count <n>] [--max-idx <n>] [--chapter-uid <n>]` | 查看热门划线 |
-| `weread notes read-reviews <bookId> <chapterUid> --reviews <json>` | 查看热门划线范围下的想法 |
-| `weread notes underlines <bookId> <chapterUid> [--synckey <n>]` | 查看章节划线热度，不含原文 |
-| `weread notes add-bookmark <bookId> <chapterUid> <range> <markText> [--type <n>] [--style <n>] [--color-style <n>] [--book-version <n>] [--chapter-name <name>] [--context-abstract <text>]` | 添加划线 |
-| `weread notes update-bookmark <bookmarkId> --style <n> [--color-style <n>]` | 修改划线样式 |
-| `weread notes remove-bookmark <bookmarkId> [-y, --yes]` | 删除自己的划线 |
-| `weread review list <bookId> [--list-type <n>] [--list-mode <n>] [--mine <n>] [--synckey <n>] [--count <n>] [--max-idx <n>]` | 查看点评 |
-| `weread review single <reviewId> [--comments-count <n>] [--comments-direction <n>] [--likes-count <n>] [--likes-direction <n>] [--synckey <n>]` | 查看一条想法或点评 |
-| `weread review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>]` | 发表点评或想法 |
-| `weread review edit <reviewId> <content>` | 修改自己的点评或想法 |
-| `weread review delete <reviewId> [-y, --yes]` | 删除点评 |
+| `weread-omni notes notebooks [--count <n>] [--last-sort <n>]` | 查看有笔记的书 |
+| `weread-omni notes recent [--count <n>]` | 查看最近的笔记和划线 |
+| `weread-omni notes bookmarks <bookId> [--synckey <n>]` | 查看自己的划线及原文 |
+| `weread-omni notes mine <bookId> [--synckey <n>] [--count <n>]` | 查看自己的笔记 |
+| `weread-omni notes best <bookId> [--synckey <n>] [--count <n>] [--max-idx <n>] [--chapter-uid <n>]` | 查看热门划线 |
+| `weread-omni notes read-reviews <bookId> <chapterUid> --reviews <json>` | 查看热门划线范围下的想法 |
+| `weread-omni notes underlines <bookId> <chapterUid> [--synckey <n>]` | 查看章节划线热度，不含原文 |
+| `weread-omni notes add-bookmark <bookId> <chapterUid> <range> <markText> [--type <n>] [--style <n>] [--color-style <n>] [--book-version <n>] [--chapter-name <name>] [--context-abstract <text>]` | 添加划线 |
+| `weread-omni notes update-bookmark <bookmarkId> --style <n> [--color-style <n>]` | 修改划线样式 |
+| `weread-omni notes remove-bookmark <bookmarkId> [-y, --yes]` | 删除自己的划线 |
+| `weread-omni review list <bookId> [--list-type <n>] [--list-mode <n>] [--mine <n>] [--synckey <n>] [--count <n>] [--max-idx <n>]` | 查看点评 |
+| `weread-omni review single <reviewId> [--comments-count <n>] [--comments-direction <n>] [--likes-count <n>] [--likes-direction <n>] [--synckey <n>]` | 查看一条想法或点评 |
+| `weread-omni review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>]` | 发表点评或想法 |
+| `weread-omni review edit <reviewId> <content>` | 修改自己的点评或想法 |
+| `weread-omni review delete <reviewId> [-y, --yes]` | 删除点评 |
 
 ### 统计、推荐、AI 与导入
 
 | 命令 | 用途 |
 | --- | --- |
-| `weread read-data detail [--mode <mode>] [--base-time <n>]` | 查看阅读统计 |
-| `weread discover recommend [--count <n>] [--max-idx <n>]` | 查看推荐图书 |
-| `weread discover similar <bookId> [--count <n>] [--max-idx <n>] [--session-id <id>]` | 查找相似图书 |
-| `weread ai ask-book <bookId> <query> [--intent <intent>] [--max-polls <n>] [--delay-cap-ms <ms>]` | 向微信读书 AI 提问 |
-| `weread ai suggest <bookId> [--chapter-uid <n>] [--toolbar] [--range <range>] [--mp-review-id <id>]` | 获取建议问题 |
-| `weread import book <path>` | 导入个人书籍 |
+| `weread-omni read-data detail [--mode <mode>] [--base-time <n>]` | 查看阅读统计 |
+| `weread-omni discover recommend [--count <n>] [--max-idx <n>]` | 查看推荐图书 |
+| `weread-omni discover similar <bookId> [--count <n>] [--max-idx <n>] [--session-id <id>]` | 查找相似图书 |
+| `weread-omni ai ask-book <bookId> <query> [--intent <intent>] [--max-polls <n>] [--delay-cap-ms <ms>]` | 向微信读书 AI 提问 |
+| `weread-omni ai suggest <bookId> [--chapter-uid <n>] [--toolbar] [--range <range>] [--mp-review-id <id>]` | 获取建议问题 |
+| `weread-omni import book <path>` | 导入个人书籍 |
 
 ### 搜索范围与翻页
 

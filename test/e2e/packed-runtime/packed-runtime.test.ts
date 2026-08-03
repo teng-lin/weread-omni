@@ -188,7 +188,7 @@ describe("packed CLI", () => {
 
     const leaves = new Set<string>();
     for (const resource of new Set(expected.map((leaf) => leaf.split(" ")[0] as string))) {
-      const help = await runBin("weread", [resource, "--help"], credentialEnv);
+      const help = await runBin("weread-omni", [resource, "--help"], credentialEnv);
       expect(help.code, `${resource} --help: ${help.stderr}`).toBe(0);
       for (const line of help.stdout.split("\n")) {
         const action = /^\s{2}([a-z][a-z-]*)\b/.exec(line)?.[1];
@@ -199,7 +199,7 @@ describe("packed CLI", () => {
   }, 120_000);
 
   it("prints machine-readable identity without contacting anything", async () => {
-    const result = await runBin("weread", ["whoami", "--json"], credentialEnv);
+    const result = await runBin("weread-omni", ["whoami", "--json"], credentialEnv);
     expect(result.code).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({
       vid: "42",
@@ -209,7 +209,7 @@ describe("packed CLI", () => {
   }, 30_000);
 
   it("emits exactly one JSON document for a successful read", async () => {
-    const result = await runBin("weread", ["book", "info", "9787532776870", "--json"], {
+    const result = await runBin("weread-omni", ["book", "info", "9787532776870", "--json"], {
       ...credentialEnv,
       NODE_OPTIONS: `--import ${JSON.stringify(pathToFileURL(fakeUpstream).href)}`,
     });
@@ -224,7 +224,7 @@ describe("packed CLI", () => {
   }, 30_000);
 
   it("reports an upstream refusal on stderr and a non-zero exit, leaving stdout clean", async () => {
-    const result = await runBin("weread", ["book", "detail", "9787532776870", "--json"], {
+    const result = await runBin("weread-omni", ["book", "detail", "9787532776870", "--json"], {
       ...credentialEnv,
       NODE_OPTIONS: `--import ${JSON.stringify(pathToFileURL(fakeUpstream).href)}`,
     });
@@ -234,7 +234,7 @@ describe("packed CLI", () => {
   }, 30_000);
 
   it("treats an early-closing stdout consumer as successful pipeline completion", async () => {
-    const result = await runBinWithClosedStdout("weread", ["book", "info", "pipe-stress", "--json"], {
+    const result = await runBinWithClosedStdout("weread-omni", ["book", "info", "pipe-stress", "--json"], {
       ...credentialEnv,
       NODE_OPTIONS: `--import ${JSON.stringify(pathToFileURL(fakeUpstream).href)}`,
     });

@@ -3,7 +3,7 @@
 
 ## The content library
 
-`weread` keeps downloaded content under `WEREAD_LIBRARY_DIR` (default
+`weread-omni` keeps downloaded content under `WEREAD_LIBRARY_DIR` (default
 `~/.local/share/weread/library`), separate from the credential directory. The
 database and every stored payload are written `0600` inside a `0700` directory,
 matching the rest of the package.
@@ -15,7 +15,7 @@ is far likelier than a small configuration file to be swept into a backup or a
 synchronised folder.
 
 Nothing is deleted automatically. There is no retention policy and no eviction:
-removing stored content means deleting the directory. `weread library verify`
+removing stored content means deleting the directory. `weread-omni library verify`
 reports damage but never removes anything.
 
 ## Supported versions
@@ -72,7 +72,7 @@ Out of scope:
   with, endorsed by, or supported by Tencent or WeRead. Report a flaw in the
   upstream service to Tencent, not here.
 - Findings that only restate a documented design decision — for example that
-  write gates are permitted by default, or that `weread import book` reads the
+  write gates are permitted by default, or that `weread-omni import book` reads the
   local path it is given.
 - Consequences of running the CLI as a different user, or of copying an account
   profile out of `WEREAD_CONFIG_DIR`. Those files are the operator's risk.

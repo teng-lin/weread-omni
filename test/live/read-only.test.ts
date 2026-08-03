@@ -6,7 +6,7 @@ import { createEinkClient } from "../../src/index.js";
 describe.skipIf(process.env.WEREAD_LIVE !== "1")("read-only live release probe", () => {
   // The probe drives the SDK directly, and the SDK deliberately never touches this Node-wide
   // default — only a process entry point may. This vitest worker is the process entry point here,
-  // so it stands in for `weread` and applies the same setting it does. Without it
+  // so it stands in for `weread-omni` and applies the same setting it does. Without it
   // the probe fails intermittently with `network error`, because Node's 250 ms Happy Eyeballs
   // budget expires a few milliseconds before a ~255 ms connect to WeRead completes.
   beforeAll(() => {

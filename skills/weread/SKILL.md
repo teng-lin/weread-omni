@@ -1,6 +1,6 @@
 ---
 name: weread
-description: Search WeRead, inspect books and reading data, manage the bookshelf, public-account subscriptions and reviews, read and write highlights and notes, build private article feeds and archives, ask WeRead AI, or import a personal book through the installed `weread` JSON CLI. Use for requests involving 微信读书, WeChat Reading, a user's WeRead shelf, public accounts, articles, highlights, notes, reviews, reading statistics, recommendations, or book lookup.
+description: Search WeRead, inspect books and reading data, manage the bookshelf, public-account subscriptions and reviews, read and write highlights and notes, build private article feeds and archives, ask WeRead AI, or import a personal book through the installed `weread-omni` JSON CLI. Use for requests involving 微信读书, WeChat Reading, a user's WeRead shelf, public accounts, articles, highlights, notes, reviews, reading statistics, recommendations, or book lookup.
 ---
 
 # WeRead
@@ -14,7 +14,7 @@ tokens.
 
 Choose exactly one account for the session and preserve it through every CLI
 call. Use the alias supplied by the user or operator. If none was supplied,
-`weread accounts --json` must show exactly one configured account. In the
+`weread-omni accounts --json` must show exactly one configured account. In the
 examples below, `$ACCOUNT` means that alias. Do not switch accounts after a
 failure.
 
@@ -27,7 +27,7 @@ never unset it or retry against another account on the user's behalf.
 Before the first authenticated operation, run:
 
 ```bash
-weread --account "$ACCOUNT" doctor --json
+weread-omni --account "$ACCOUNT" doctor --json
 ```
 
 Proceed only when the result has `ok: true`, `cli.package:
@@ -37,7 +37,7 @@ error, require the same `cli.package` in the JSON error before following its
 account-specific hint; malformed or unreadable state must be corrected or
 removed first. Retry `doctor` once with the same account. If it returns
 non-JSON or names another
-package, stop and report the path from `command -v weread`; do not guess
+package, stop and report the path from `command -v weread-omni`; do not guess
 another command.
 
 ## Read workflow
@@ -52,22 +52,22 @@ offer `--refresh` to refetch and replace it; `--no-library` skips the library
 entirely for one command. Never present stored content as freshly fetched.
 
 ```bash
-weread --account "$ACCOUNT" search books "三体" --json
-weread --account "$ACCOUNT" search books "刘慈欣" --scope 6 --json
-weread --account "$ACCOUNT" book info BOOK_ID --json
-weread --account "$ACCOUNT" shelf sync --count 20 --json
-weread --account "$ACCOUNT" public-accounts subscriptions --count 20 --json
-weread --account "$ACCOUNT" public-accounts articles MP_WXS_123 --count 20 --json
-weread --account "$ACCOUNT" public-accounts resolve-article 'https://mp.weixin.qq.com/s/ARTICLE' --json
-weread --account "$ACCOUNT" notes notebooks --count 10 --json
-weread --account "$ACCOUNT" notes recent --count 10 --json
-weread --account "$ACCOUNT" notes mine BOOK_ID --count 10 --json
-weread --account "$ACCOUNT" notes underlines BOOK_ID CHAPTER_UID --json
-weread --account "$ACCOUNT" notes read-reviews BOOK_ID CHAPTER_UID --reviews '[{"range":"393-401","count":10}]' --json
-weread --account "$ACCOUNT" review single REVIEW_ID --json
-weread --account "$ACCOUNT" read-data detail --mode weekly --json
-weread --account "$ACCOUNT" discover recommend --count 10 --json
-weread --account "$ACCOUNT" ai ask-book BOOK_ID "Summarize the central argument" --json
+weread-omni --account "$ACCOUNT" search books "三体" --json
+weread-omni --account "$ACCOUNT" search books "刘慈欣" --scope 6 --json
+weread-omni --account "$ACCOUNT" book info BOOK_ID --json
+weread-omni --account "$ACCOUNT" shelf sync --count 20 --json
+weread-omni --account "$ACCOUNT" public-accounts subscriptions --count 20 --json
+weread-omni --account "$ACCOUNT" public-accounts articles MP_WXS_123 --count 20 --json
+weread-omni --account "$ACCOUNT" public-accounts resolve-article 'https://mp.weixin.qq.com/s/ARTICLE' --json
+weread-omni --account "$ACCOUNT" notes notebooks --count 10 --json
+weread-omni --account "$ACCOUNT" notes recent --count 10 --json
+weread-omni --account "$ACCOUNT" notes mine BOOK_ID --count 10 --json
+weread-omni --account "$ACCOUNT" notes underlines BOOK_ID CHAPTER_UID --json
+weread-omni --account "$ACCOUNT" notes read-reviews BOOK_ID CHAPTER_UID --reviews '[{"range":"393-401","count":10}]' --json
+weread-omni --account "$ACCOUNT" review single REVIEW_ID --json
+weread-omni --account "$ACCOUNT" read-data detail --mode weekly --json
+weread-omni --account "$ACCOUNT" discover recommend --count 10 --json
+weread-omni --account "$ACCOUNT" ai ask-book BOOK_ID "Summarize the central argument" --json
 ```
 
 `search books` defaults to `--scope 10` for ebooks. Choose the scope from the
@@ -111,7 +111,7 @@ questions.
 
 For public accounts, follow this sequence exactly:
 
-1. Search with `weread --account "$ACCOUNT" search books KEYWORD --scope 2 --json`.
+1. Search with `weread-omni --account "$ACCOUNT" search books KEYWORD --scope 2 --json`.
 2. Show the matches and have the user choose the exact `MP_WXS_<digits>` ID.
    Never auto-select or auto-subscribe the first fuzzy match.
 3. Subscribe only when requested, then use `public-accounts subscriptions`,
@@ -119,11 +119,11 @@ For public accounts, follow this sequence exactly:
 4. Unsubscribe only after confirming the exact account.
 
 ```bash
-weread --account "$ACCOUNT" public-accounts subscribe MP_WXS_123 --json
-weread --account "$ACCOUNT" public-accounts feed MP_WXS_123 --format rss --out /private/path/feed.xml --json
-weread --account "$ACCOUNT" public-accounts feed subscriptions --format json --out /private/path/feed.json --json
-weread --account "$ACCOUNT" public-accounts export MP_WXS_123 --out /private/path/archive --json
-weread --account "$ACCOUNT" public-accounts unsubscribe MP_WXS_123 --yes --json
+weread-omni --account "$ACCOUNT" public-accounts subscribe MP_WXS_123 --json
+weread-omni --account "$ACCOUNT" public-accounts feed MP_WXS_123 --format rss --out /private/path/feed.xml --json
+weread-omni --account "$ACCOUNT" public-accounts feed subscriptions --format json --out /private/path/feed.json --json
+weread-omni --account "$ACCOUNT" public-accounts export MP_WXS_123 --out /private/path/archive --json
+weread-omni --account "$ACCOUNT" public-accounts unsubscribe MP_WXS_123 --yes --json
 ```
 
 Feed and export outputs contain at most 20 items by default and 100 maximum.
@@ -148,10 +148,10 @@ Run a write only when the user explicitly requests that change. State the
 target before acting. Do not infer consent from a prior read.
 
 ```bash
-weread --account "$ACCOUNT" shelf add BOOK_ID --json
-weread --account "$ACCOUNT" review add BOOK_ID "A concise review" --star 100 --json
-weread --account "$ACCOUNT" review edit REVIEW_ID "Replacement text" --json
-weread --account "$ACCOUNT" import book /absolute/path/to/book.epub --json
+weread-omni --account "$ACCOUNT" shelf add BOOK_ID --json
+weread-omni --account "$ACCOUNT" review add BOOK_ID "A concise review" --star 100 --json
+weread-omni --account "$ACCOUNT" review edit REVIEW_ID "Replacement text" --json
+weread-omni --account "$ACCOUNT" import book /absolute/path/to/book.epub --json
 ```
 
 `import book` accepts an EPUB, PDF, MOBI, TXT, or AZW3 file the user already
@@ -161,14 +161,14 @@ Shelf state changes use the positive state by default and a negated option for
 the reverse:
 
 ```bash
-weread --account "$ACCOUNT" shelf pin BOOK_ID --json
-weread --account "$ACCOUNT" shelf pin BOOK_ID --no-top --json
-weread --account "$ACCOUNT" shelf set-private BOOK_ID --json
-weread --account "$ACCOUNT" shelf set-private BOOK_ID --no-secret --json
-weread --account "$ACCOUNT" shelf mark-finished BOOK_ID --json
-weread --account "$ACCOUNT" shelf mark-finished BOOK_ID --no-finished --json
-weread --account "$ACCOUNT" shelf mark-reading BOOK_ID --json
-weread --account "$ACCOUNT" shelf mark-reading BOOK_ID --no-reading --json
+weread-omni --account "$ACCOUNT" shelf pin BOOK_ID --json
+weread-omni --account "$ACCOUNT" shelf pin BOOK_ID --no-top --json
+weread-omni --account "$ACCOUNT" shelf set-private BOOK_ID --json
+weread-omni --account "$ACCOUNT" shelf set-private BOOK_ID --no-secret --json
+weread-omni --account "$ACCOUNT" shelf mark-finished BOOK_ID --json
+weread-omni --account "$ACCOUNT" shelf mark-finished BOOK_ID --no-finished --json
+weread-omni --account "$ACCOUNT" shelf mark-reading BOOK_ID --json
+weread-omni --account "$ACCOUNT" shelf mark-reading BOOK_ID --no-reading --json
 ```
 
 Review ratings use the protocol scale `20`, `40`, `60`, `80`, or `100`.
@@ -176,18 +176,18 @@ Review ratings use the protocol scale `20`, `40`, `60`, `80`, or `100`.
 Add a highlight (划线) with the chapter, character range, and highlighted text:
 
 ```bash
-weread --account "$ACCOUNT" notes add-bookmark BOOK_ID CHAPTER_UID "777-778" "the highlighted text" --json
-weread --account "$ACCOUNT" notes update-bookmark BOOKMARK_ID --style 2 --color-style 5 --json
+weread-omni --account "$ACCOUNT" notes add-bookmark BOOK_ID CHAPTER_UID "777-778" "the highlighted text" --json
+weread-omni --account "$ACCOUNT" notes update-bookmark BOOKMARK_ID --style 2 --color-style 5 --json
 ```
 
 Deletion is destructive. Confirm the exact target with the user, then include
 `--yes`; never retry a failed write blindly.
 
 ```bash
-weread --account "$ACCOUNT" shelf delete BOOK_ID --yes --json
-weread --account "$ACCOUNT" notes remove-bookmark BOOKMARK_ID --yes --json
-weread --account "$ACCOUNT" review delete REVIEW_ID --yes --json
-weread --account "$ACCOUNT" public-accounts unsubscribe MP_WXS_123 --yes --json
+weread-omni --account "$ACCOUNT" shelf delete BOOK_ID --yes --json
+weread-omni --account "$ACCOUNT" notes remove-bookmark BOOKMARK_ID --yes --json
+weread-omni --account "$ACCOUNT" review delete REVIEW_ID --yes --json
+weread-omni --account "$ACCOUNT" public-accounts unsubscribe MP_WXS_123 --yes --json
 ```
 
 ## Result handling

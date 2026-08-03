@@ -3,7 +3,7 @@ import { exchange, pollForCode } from "../../src/auth/qrlogin.js";
 import { AuthError, TransportError } from "../../src/errors.js";
 
 // The QR poll is a long-lived loop the user is waiting on. Its cancellation and deadline
-// behaviour is what decides whether `weread login` can be interrupted, and whether a login that
+// behaviour is what decides whether `weread-omni login` can be interrupted, and whether a login that
 // will never complete says so instead of spinning — neither is visible from the happy path.
 
 const wx = (body: unknown, status = 200): Response =>

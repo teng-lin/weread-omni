@@ -10,7 +10,7 @@ import { ContentLibrary } from "../../src/library/store.js";
  * Proof that the open library actually reaches the artifact commands.
  *
  * The store itself and the public-account paths are covered elsewhere. What is only true if the
- * wiring is right is that `weread public-accounts export` hands its library down far enough to be
+ * wiring is right is that `weread-omni public-accounts export` hands its library down far enough to be
  * consulted, and nothing below the command layer can show that.
  */
 
@@ -102,7 +102,7 @@ function stubSource(): () => number {
   return () => calls;
 }
 
-describe("weread public-accounts export with a library", () => {
+describe("weread-omni public-accounts export with a library", () => {
   it("consults the library the CLI opened, so a second export fetches nothing", async () => {
     const library = await ContentLibrary.open({
       vid: "42",

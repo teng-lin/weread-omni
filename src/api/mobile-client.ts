@@ -82,9 +82,9 @@ export class MobileApiClient {
     this.#credentials = options.credentials ? { ...options.credentials } : undefined;
     this.#env = options.env ?? process.env;
     this.#profile = options.profile ?? einkProfile();
-    // The credential file this client reads. `weread login` writes accounts elsewhere, so this
+    // The credential file this client reads. `weread-omni login` writes accounts elsewhere, so this
     // names a file for a direct SDK client or a `createProgram` embedder -- never for the shipped
-    // `weread` binary, which routes through AccountManager. An explicit "" is a deliberate request
+    // `weread-omni` binary, which routes through AccountManager. An explicit "" is a deliberate request
     // for the unsuffixed store and is preserved; only an absent option falls back.
     this.#store = options.store ?? "eink";
     this.#fetchImpl = options.fetchImpl ?? fetch;

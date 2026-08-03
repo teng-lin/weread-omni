@@ -50,7 +50,7 @@
     }
   },
   "bin": {
-    "weread": "./dist/cli.js"
+    "weread-omni": "./dist/cli.js"
   },
   "files": [
     "dist",

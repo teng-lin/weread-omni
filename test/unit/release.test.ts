@@ -31,7 +31,7 @@ describe("release artifacts", () => {
 
     expect(manifest.name).toBe("weread-omni");
     expect(manifest.engines.node).toBe(">=22.13.0");
-    expect(manifest.bin).toEqual({ weread: "./dist/cli.js" });
+    expect(manifest.bin).toEqual({ "weread-omni": "./dist/cli.js" });
     expect(manifest.files).toEqual([
       "dist",
       "docs",
@@ -112,7 +112,7 @@ describe("release artifacts", () => {
     }
     expect(readme).toContain("非官方");
     expect(readme).toContain("chapters(bookId)");
-    expect(readme).toContain("weread accounts");
+    expect(readme).toContain("weread-omni accounts");
     expect(readme).toContain("AccountManager");
     expect(readme).toContain("[更新日志](CHANGELOG.md)");
     expect(readme).toContain("[安全政策](SECURITY.md)");
@@ -123,7 +123,7 @@ describe("release artifacts", () => {
     }
     expect(english).toContain("unofficial");
     expect(english).toContain("chapters(bookId)");
-    expect(english).toContain("weread accounts");
+    expect(english).toContain("weread-omni accounts");
     expect(english).toContain("AccountManager");
     expect(english).toContain("[Changelog](CHANGELOG.md)");
     expect(english).toContain("[Security policy](SECURITY.md)");
@@ -133,6 +133,20 @@ describe("release artifacts", () => {
   // This checks only the second. The earlier version of this ban covered the two READMEs, which is
   // how SKILL.md and SECURITY.md kept naming the five removed write gates through three refactors --
   // SKILL.md being the file an agent actually reads at runtime.
+  // The CLI is `weread-omni`; the bundled skill is still `weread`. A rename sweep that cannot tell
+  // them apart produces an install command for a skill that does not exist -- which is exactly what
+  // happened, and what only a reader comparing two adjacent lines would have caught.
+  it("installs a skill that the repository actually ships", async () => {
+    for (const doc of ["README.md", "README.en.md"]) {
+      const referenced = [...(await text(doc)).matchAll(/--skill\s+(\S+)/g)].map(([, name]) => name);
+      expect(referenced.length, `${doc} documents no skill install`).toBeGreaterThan(0);
+      for (const name of referenced) {
+        const skill = await text(`skills/${name}/SKILL.md`);
+        expect(skill, `${doc} installs --skill ${name}`).toContain(`name: ${name}`);
+      }
+    }
+  });
+
   it("names no removed configuration in any shipped document", async () => {
     const removed = [
       "WEREAD_ALLOW_",
@@ -328,7 +342,7 @@ describe("release artifacts", () => {
     expect(packSmoke).toContain("node-version: 22.13.0");
     expect(packSmoke).toContain("npm install --engine-strict --ignore-scripts --no-audit --no-fund");
     expect(packSmoke).toContain('await Promise.all(["weread-omni", "weread-omni/cli"]');
-    expect(packSmoke).toContain("./node_modules/.bin/weread --help");
+    expect(packSmoke).toContain("./node_modules/.bin/weread-omni --help");
   });
 
   it("pins every external workflow action to a commit", async () => {

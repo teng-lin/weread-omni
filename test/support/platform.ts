@@ -1,7 +1,7 @@
 /**
  * Platform differences the end-to-end suites have to account for.
  *
- * These suites drive `npm` and the installed `weread` bin as real child processes, and both are
+ * These suites drive `npm` and the installed `weread-omni` bin as real child processes, and both are
  * spelled differently on Windows:
  *
  * * `npm` is `npm.cmd`. Since the fix for CVE-2024-27980, Node refuses to run a `.cmd` through

@@ -76,7 +76,7 @@ jobs:
             .trim().split(/\r?\n/).at(-1);
           run("npm", ["install", "--global", "--engine-strict", "--no-audit", "--no-fund", resolve(tarball)],
             { stdio: "inherit" });
-          run("weread", ["--help"], { stdio: "inherit" });
+          run("weread-omni", ["--help"], { stdio: "inherit" });
 
   pack-smoke:
     # Packs the real tarball, installs it into a throwaway prefix, imports all three
@@ -123,4 +123,4 @@ jobs:
           npm install --engine-strict --ignore-scripts --no-audit --no-fund "${tarballs[0]}"
           node --input-type=module --eval \
             'await Promise.all(["weread-omni", "weread-omni/cli"].map((name) => import(name)))'
-          ./node_modules/.bin/weread --help >/dev/null
+          ./node_modules/.bin/weread-omni --help >/dev/null
