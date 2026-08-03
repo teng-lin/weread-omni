@@ -177,10 +177,16 @@ jobs:
           NODE
           node "$RUNNER_TEMP/verify-candidate.mjs"
 
+      # No `registry-url`. That input makes setup-node write an .npmrc containing
+      # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`, and with no token in the environment
+      # that expands to an EMPTY credential rather than to nothing at all. npm then believes it is
+      # already authenticated, never asks GitHub for an id-token, and the publish fails as an
+      # anonymous PUT -- which the registry reports as a 404 on the package, not as an auth error.
+      # Without the file, npm finds no credential, sees ACTIONS_ID_TOKEN_REQUEST_URL, and exchanges
+      # the id-token for a short-lived one. The default registry is npmjs.org either way.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22.14.0
-          registry-url: https://registry.npmjs.org
 
       - name: Require a provenance-capable toolchain
         run: |

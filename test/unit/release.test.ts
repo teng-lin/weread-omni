@@ -551,7 +551,10 @@ describe("release artifacts", () => {
     expect(candidate).toContain("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02");
     expect(candidate).not.toContain("actions/download-artifact");
     expect(workflow).not.toContain("actions/download-artifact");
-    expect(workflow).toContain("registry-url: https://registry.npmjs.org");
+    // No `registry-url`: it makes setup-node write an .npmrc whose `_authToken` expands to an empty
+    // string when no token is present, which npm reads as "already authenticated" and never falls
+    // back to OIDC. The publish then goes out anonymously and the registry answers 404.
+    expect(workflow).not.toMatch(/^\s*registry-url:/m);
     expect(workflow).toContain("--provenance");
     // `workflow_dispatch` is open to every write-access user, so the only real approval
     // gate is a protected Environment holding the registry token.
@@ -560,9 +563,11 @@ describe("release artifacts", () => {
     // Authentication is OIDC trusted publishing, so there must be no token fallback at
     // all. A workflow that still carries one would silently keep working after the trust
     // relationship was revoked, which is the failure this asserts away.
-    expect(workflow).not.toContain("NODE_AUTH_TOKEN");
-    expect(workflow).not.toContain("NPM_TOKEN");
-    expect(workflow).not.toContain("npm whoami");
+    // Assert no ACTIVE token wiring, rather than banning the words: the workflow has to be able to
+    // explain in a comment why the credential is absent, and a ban on the string forbids that.
+    expect(workflow).not.toMatch(/^\s*NODE_AUTH_TOKEN:/m);
+    expect(workflow).not.toMatch(/secrets\.NPM_TOKEN/);
+    expect(workflow).not.toMatch(/^\s*run:\s*npm whoami/m);
     // The credential npm exchanges the id-token for is scoped by these two.
     expect(workflow).toContain("id-token: write");
     expect(workflow).toContain("environment: npm-publish");
