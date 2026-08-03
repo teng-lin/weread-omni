@@ -498,7 +498,6 @@ describe("release artifacts", () => {
 
     const identity = workflow.indexOf("- name: Verify the retained package identity and digest");
     const tooling = workflow.indexOf("actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020");
-    const auth = workflow.indexOf("- name: Confirm registry authentication");
     const publish = workflow.indexOf("- name: Recheck the digest and publish the retained tarball");
     const sourceIdentity = workflow.indexOf('source.name !== "weread-omni"');
     // biome-ignore lint/suspicious/noTemplateCurlyInString: asserting the literal workflow script
@@ -506,15 +505,14 @@ describe("release artifacts", () => {
     const canonicalTarball = workflow.indexOf("metadata.tarball !== expectedTarball");
     const resolveTarball = workflow.indexOf('resolve("candidate", expectedTarball)');
     const exportTarball = workflow.indexOf("appendFileSync(process.env.GITHUB_ENV");
-    expect([identity, tooling, auth, publish].every((index) => index >= 0)).toBe(true);
+    expect([identity, tooling, publish].every((index) => index >= 0)).toBe(true);
     expect(identity).toBeLessThan(sourceIdentity);
     expect(sourceIdentity).toBeLessThan(versionIdentity);
     expect(versionIdentity).toBeLessThan(canonicalTarball);
     expect(canonicalTarball).toBeLessThan(resolveTarball);
     expect(resolveTarball).toBeLessThan(exportTarball);
     expect(identity).toBeLessThan(tooling);
-    expect(tooling).toBeLessThan(auth);
-    expect(auth).toBeLessThan(publish);
+    expect(tooling).toBeLessThan(publish);
     expect(workflow.slice(publish)).toContain(
       'npm publish "$TARBALL" --provenance --access public --tag "$NPM_DIST_TAG"',
     );
@@ -559,12 +557,15 @@ describe("release artifacts", () => {
     // gate is a protected Environment holding the registry token.
     expect(workflow).toContain("environment: npm-publish");
 
-    // The registry token is exposed to the authentication and publish steps only.
-    // biome-ignore lint/suspicious/noTemplateCurlyInString: asserting the literal GitHub Actions secret expression
-    const authToken = "NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}";
-    expect(workflow).toContain(authToken);
-    expect(countOccurrences(workflow, authToken)).toBe(2);
-    expect(countOccurrences(workflow, "NODE_AUTH_TOKEN")).toBe(2);
+    // Authentication is OIDC trusted publishing, so there must be no token fallback at
+    // all. A workflow that still carries one would silently keep working after the trust
+    // relationship was revoked, which is the failure this asserts away.
+    expect(workflow).not.toContain("NODE_AUTH_TOKEN");
+    expect(workflow).not.toContain("NPM_TOKEN");
+    expect(workflow).not.toContain("npm whoami");
+    // The credential npm exchanges the id-token for is scoped by these two.
+    expect(workflow).toContain("id-token: write");
+    expect(workflow).toContain("environment: npm-publish");
   });
 
   it("ships an explicit first-publish and Trusted Publishing runbook", async () => {
