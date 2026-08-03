@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AccountManager } from "../../src/accounts.js";
 import type { CanonicalClient } from "../../src/api/client.js";
@@ -191,6 +192,85 @@ describe("client plugins and account storage", () => {
     await expect(new AccountManager({ env, plugins: [partial] }).open("work")).rejects.toThrow(
       /progress must be callable/,
     );
+  });
+
+  it("lets an interactive CLI choose one account from more than two configured accounts", async () => {
+    const env = temporaryEnv();
+    const callbacks = { client: "mobile", onQr: vi.fn(), onStatus: vi.fn(), onOtp: vi.fn() };
+    const manager = new AccountManager({ env, plugins: [plugin()] });
+    for (const alias of ["personal", "test", "work"]) {
+      await manager.login(alias, { ...callbacks, client: "mobile" });
+    }
+
+    const selected = vi.fn(async (accounts: readonly { account: string; client: string }[]) => {
+      expect(accounts.map(({ account }) => account)).toEqual(["personal", "test", "work"]);
+      return "test";
+    });
+    const commandOut = sink();
+    const commandErr = sink();
+
+    const code = await runAccountCli(["node", "weread-omni", "book", "info", "book", "--no-library"], {
+      accountManager: manager,
+      env,
+      stdout: commandOut.stream,
+      stderr: commandErr.stream,
+      isTTY: true,
+      selectAccount: selected,
+    });
+    expect({ code, stderr: commandErr.read() }).toEqual({ code: 0, stderr: "" });
+    expect(selected).toHaveBeenCalledOnce();
+    expect(commandOut.read()).toContain("book.info");
+
+    const nonInteractiveSelection = vi.fn(async () => "test");
+    const nonInteractiveErr = sink();
+    await expect(
+      runAccountCli(["node", "weread-omni", "book", "info", "book", "--json", "--no-library"], {
+        accountManager: manager,
+        env,
+        stderr: nonInteractiveErr.stream,
+        isTTY: false,
+        selectAccount: nonInteractiveSelection,
+      }),
+    ).resolves.toBe(1);
+    expect(nonInteractiveSelection).not.toHaveBeenCalled();
+    expect(nonInteractiveErr.read()).toContain("multiple WeRead accounts are configured");
+
+    const input = new PassThrough();
+    const stdin = vi.spyOn(process, "stdin", "get").mockReturnValue(input as unknown as typeof process.stdin);
+    const promptedOut = sink();
+    const promptedErr = sink();
+    try {
+      const prompted = runAccountCli(["node", "weread-omni", "book", "info", "book", "--no-library"], {
+        accountManager: manager,
+        env,
+        stdout: promptedOut.stream,
+        stderr: promptedErr.stream,
+        isTTY: true,
+      });
+      input.end("2\n");
+      await expect(prompted).resolves.toBe(0);
+    } finally {
+      stdin.mockRestore();
+    }
+    // `--json` declares the output machine-read, so it must refuse rather than ask -- even from a
+    // terminal, because a caller piping JSON onward still inherits that terminal's stdin.
+    const jsonSelection = vi.fn(async () => "test");
+    const jsonErr = sink();
+    await expect(
+      runAccountCli(["node", "weread-omni", "book", "info", "book", "--json", "--no-library"], {
+        accountManager: manager,
+        env,
+        stderr: jsonErr.stream,
+        isTTY: true,
+        selectAccount: jsonSelection,
+      }),
+    ).resolves.toBe(1);
+    expect(jsonSelection).not.toHaveBeenCalled();
+    expect(jsonErr.read()).toContain("multiple WeRead accounts are configured");
+
+    expect(promptedErr.read()).toContain("1. personal");
+    expect(promptedErr.read()).toContain("Select an account by number or alias:");
+    expect(promptedOut.read()).toContain("book.info");
   });
 
   it("accepts a client without chapter content and one that carries it as an extra", async () => {
