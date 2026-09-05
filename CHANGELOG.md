@@ -19,6 +19,26 @@ CLI surface is **experimental** and may change in a minor release.
   reinstall; the old `weread` binary is not removed by upgrading.
 - Recovery hints name the new command, so a copied suggestion works as printed.
 
+### Added
+
+- **An interactive command asks which account to use** when several are
+  configured and none is recorded as the default, instead of failing with
+  "pass --account". It asks only when someone is there to answer: never with
+  `--json`, never without a terminal, so a script, a pipe, or an agent driving
+  the JSON CLI keeps the old error. `selectAccount` on `AccountCliDependencies`
+  overrides the prompt, and `AccountSelector` is exported from
+  `weread-omni/cli`.
+
+### Fixed
+
+- **The interactive prompts no longer exit silently when stdin ends.**
+  `readline`'s `question()` never settles at EOF, so Ctrl-D or a closed pipe
+  left the promise pending; nothing awaited it, the event loop drained, and the
+  process exited 0 having printed nothing. `weread-omni shelf delete` answered
+  with Ctrl-D reported success and deleted nothing. All three prompts -- the
+  delete confirmation, the login OTP, and the account chooser -- now report
+  "no answer was given" and exit non-zero.
+
 Credential and library locations are untouched: `~/.config/weread/` and
 `~/.local/share/weread/library` keep an existing login and cached content. The
 projected tool names, the upstream host, and the bundled skill are unchanged.
