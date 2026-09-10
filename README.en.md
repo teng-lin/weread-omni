@@ -120,6 +120,28 @@ weread-omni review add BOOK_ID "My thoughts after reading" --star 80 --json
 
 `shelf pin`, `set-private`, `mark-finished`, and `mark-reading` perform the positive action by default. Use `--no-top`, `--no-secret`, `--no-finished`, or `--no-reading` to reverse it. Review ratings must be one of `20`, `40`, `60`, `80`, or `100`.
 
+### Read one public-account article
+
+Read a WeChat article URL without subscribing to its public account:
+
+```bash
+weread-omni public-accounts read-article 'https://mp.weixin.qq.com/s/ARTICLE' --json
+```
+
+Returns title, account name, Markdown, body HTML, source URL and timestamps.
+`fromCache` identifies a stored copy; cache hits return `cachedAt` and a null
+`fetchedAt`. `--refresh` refetches and updates the library; `--no-library` skips
+both library reads and writes. Without `--json`, the command prints Markdown and
+source information.
+
+`status` is `readable`, `partial`, or `unavailable`. Readable content has
+`completeness: unverified`: extraction is not independent proof of full-text
+completeness. Paid previews remain partial. Unavailable content exits 1 with a
+JSON error and `article.diagnostics` on stderr, rather than returning an abstract
+as the body. This uses the existing feed/export source, entitlement and cache
+pipeline. `resolve-article` returns an ID; `review single` returns metadata and
+does not guarantee a body.
+
 ### Public-account feeds and exports
 
 Search first and verify the exact `MP_WXS_<digits>` ID before subscribing:

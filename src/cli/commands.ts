@@ -23,7 +23,13 @@ import type {
   StarRating,
   UpdateBookmarkInput,
 } from "../api/types.js";
-import { buildPublicAccountFeed, exportPublicAccountArchive, publishPublicAccountFeed } from "../public-accounts.js";
+import {
+  buildPublicAccountFeed,
+  exportPublicAccountArchive,
+  PublicAccountReadError,
+  publishPublicAccountFeed,
+  readPublicAccountArticle,
+} from "../public-accounts.js";
 import { shelfView } from "../shelf-view.js";
 import { type OutputWriter, output } from "./output.js";
 
@@ -99,6 +105,15 @@ const kebab = (value: string): string => value.replace(/([a-z0-9])([A-Z])/g, "$1
 
 /** Remove canonical leaves that no configured store and active gate can execute. */
 export function retainCliOperations(program: Command, operations: ReadonlySet<CliOperation>): void {
+  if (
+    !["publicAccounts.resolveArticle", "publicAccounts.paidContent", "review.single"].every((operation) =>
+      operations.has(operation as CliOperation),
+    )
+  ) {
+    const resource = program.commands.find((command) => command.name() === "public-accounts");
+    const index = resource?.commands.findIndex((command) => command.name() === "read-article") ?? -1;
+    if (resource && index >= 0) (resource.commands as Command[]).splice(index, 1);
+  }
   for (const operation of CLI_OPERATIONS) {
     if (operations.has(operation)) continue;
     const [resourceName, actionName] = operation.split(".") as [string, string];
@@ -471,6 +486,36 @@ export function registerReadCommands(program: Command, context: BuiltinCommandCo
         }),
       ),
     );
+  publicAccounts
+    .command("read-article <docUrl>")
+    .description("Read one public article as Markdown, with source and cache status")
+    .action(async (docUrl: string, _options: unknown, command: Command) => {
+      const client = context.getClientFor(
+        "publicAccounts.resolveArticle",
+        "publicAccounts.paidContent",
+        "review.single",
+      );
+      const result = await readPublicAccountArticle(client, docUrl, {
+        signal: context.signal,
+        library: context.library,
+        libraryMode: context.libraryMode,
+      });
+      if (result.status === "unavailable") throw new PublicAccountReadError(result);
+      output(result, { json: command.optsWithGlobals().json === true, stdout: context.stdout }, (article) =>
+        [
+          article.title,
+          article.sourceUrl,
+          article.fromCache ? `Cached: ${article.cachedAt ?? "unknown"}` : `Fetched: ${article.fetchedAt ?? "unknown"}`,
+          article.status === "partial"
+            ? "Partial content (preview)."
+            : "Readable content; full-text completeness is unverified.",
+          "",
+          article.markdown ?? article.contentHtml,
+        ]
+          .filter((line) => line !== null)
+          .join("\n"),
+      );
+    });
   if (context.getFullClientFor) {
     const getFullClientFor = context.getFullClientFor;
     publicAccounts

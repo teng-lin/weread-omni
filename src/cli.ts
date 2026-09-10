@@ -47,7 +47,7 @@ import { libraryRoot } from "./library/paths.js";
 import { ContentLibrary } from "./library/store.js";
 import { gateDisabledMessage, operationEnabled, operationGate } from "./operation-policy.js";
 import { loadClientPlugins, pluginSpecifiers } from "./plugin.js";
-import { PublicAccountArtifactError } from "./public-accounts.js";
+import { PublicAccountArtifactError, PublicAccountReadError } from "./public-accounts.js";
 import { redact, stripErrorPrefix } from "./redact.js";
 
 const loginRecoveryHint = (store: string): string => {
@@ -256,6 +256,9 @@ function jsonError(error: unknown, message: string, store: string, loginSupporte
     // must-not-retry contract as above, different error taxonomy.
     payload.ambiguous = true;
     payload.phase = error.phase;
+  } else if (error instanceof PublicAccountReadError) {
+    payload.code = error.result.diagnostics[0]?.code ?? "ARTICLE_UNAVAILABLE";
+    payload.article = error.result;
   } else if (error instanceof PublicAccountArtifactError) {
     payload.code = error.code;
     payload.path = error.path;

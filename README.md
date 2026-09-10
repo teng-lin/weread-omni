@@ -111,6 +111,26 @@ weread-omni review add BOOK_ID "读完后的想法" --star 80 --json
 
 `shelf pin`、`set-private`、`mark-finished` 和 `mark-reading` 默认会置顶、设为私密、标记读完或标记在读。分别加 `--no-top`、`--no-secret`、`--no-finished` 或 `--no-reading` 可以取消对应状态。点评星级只能填 `20`、`40`、`60`、`80`、`100`，对应一到五星。
 
+### 读取单篇公众号文章
+
+给定微信文章链接，直接读取正文，无需订阅公众号：
+
+```bash
+weread-omni public-accounts read-article 'https://mp.weixin.qq.com/s/ARTICLE' --json
+```
+
+JSON 返回标题、公众号名称、Markdown、正文 HTML、原始链接和获取时间。
+`fromCache` 表示是否读取本地副本；缓存命中时返回 `cachedAt`，`fetchedAt` 为 `null`，不伪装成刚刚抓取。
+`--refresh` 重新抓取并更新缓存，`--no-library` 完全跳过缓存读写。
+
+`status` 为 `readable`、`partial` 或 `unavailable`。`readable` 仅表示取得可读正文，
+`completeness: unverified` 提醒调用者尚未独立核实全文完整性；付费预览标为 `partial`。
+无法读取时退出码为 1，stderr 返回 JSON 错误及 `article.diagnostics`，不会把摘要当正文。
+不带 `--json` 时输出 Markdown 和来源说明。
+
+该命令复用 Feed/导出的链接校验、微信读书墨水屏请求方式、正文提取、付费权限和缓存逻辑。
+`resolve-article` 只解析文章 ID，`review single` 用于详情，两者不保证返回正文。
+
 ### 公众号 Feed 与导出
 
 订阅前先搜索并核对准确的 `MP_WXS_<数字>` ID：

@@ -52,6 +52,7 @@ offer `--refresh` to refetch and replace it; `--no-library` skips the library
 entirely for one command. Never present stored content as freshly fetched.
 
 ```bash
+weread-omni --account "$ACCOUNT" public-accounts read-article 'https://mp.weixin.qq.com/s/ARTICLE' --json
 weread-omni --account "$ACCOUNT" search books "三体" --json
 weread-omni --account "$ACCOUNT" search books "刘慈欣" --scope 6 --json
 weread-omni --account "$ACCOUNT" book info BOOK_ID --json
@@ -109,7 +110,17 @@ for those note types. To read thoughts under a popular highlight, take its
 `discover similar`, and `ai suggest` for reviews, related books, and suggested
 questions.
 
-For public accounts, follow this sequence exactly:
+For a supplied article URL, use `public-accounts read-article URL --json` directly;
+no public-account search or subscription is needed. `resolve-article` only returns
+an ID and `review single` may only contain metadata or an abstract.
+Use the returned `markdown` or `contentHtml`, and cite `sourceUrl`. A cache hit is
+marked `fromCache: true`, with `cachedAt` and a null `fetchedAt`. `status: readable`
+does not independently establish completeness (`completeness: unverified`);
+inspect the article structure and ending when completeness matters. `partial`
+means only a preview was obtained. An unavailable body exits nonzero with JSON
+diagnostics on stderr; never summarize its metadata as though it were the body.
+
+For public-account discovery and subscription, follow this sequence:
 
 1. Search with `weread-omni --account "$ACCOUNT" search books KEYWORD --scope 2 --json`.
 2. Show the matches and have the user choose the exact `MP_WXS_<digits>` ID.
