@@ -204,6 +204,45 @@ describe("single public article", () => {
     });
   });
 
+  it("prints the body and preview warning for a human-readable paid article", async () => {
+    source();
+    const stdout = sink();
+    const stderr = sink();
+    const code = await runCli(["node", "weread-omni", "public-accounts", "read-article", URL], {
+      stores: [{ name: "default", backend: "eink", client: client(2) }],
+      store: "default",
+      stdout,
+      stderr,
+    });
+    expect(code).toBe(0);
+    expect(stderr.read()).toBe("");
+    expect(stdout.read()).toContain("Example title");
+    expect(stdout.read()).toContain(FULL_URL);
+    expect(stdout.read()).toContain("Partial content (preview).");
+    expect(stdout.read()).toContain("BEGIN");
+    expect(stdout.read()).toContain("END");
+  });
+
+  it("labels cached content in human output without claiming a fresh fetch", async () => {
+    const api = client();
+    const store = await library();
+    source();
+    await readPublicAccountArticle(api, URL, { library: store });
+    const stdout = sink();
+    const code = await runCli(["node", "weread-omni", "public-accounts", "read-article", URL], {
+      stores: [{ name: "default", backend: "eink", client: api }],
+      store: "default",
+      library: store,
+      stdout,
+      stderr: sink(),
+    });
+    expect(code).toBe(0);
+    expect(stdout.read()).toContain("Cached:");
+    expect(stdout.read()).not.toContain("Fetched:");
+    expect(stdout.read()).toContain("full-text completeness is unverified");
+    expect(stdout.read()).toContain("END");
+  });
+
   it("hides the command when a required operation is missing", () => {
     const program = createProgram({
       stores: [{ name: "default", backend: "eink", client: { review: client().review } }],
