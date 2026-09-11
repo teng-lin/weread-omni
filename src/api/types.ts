@@ -947,6 +947,8 @@ export type StorableArticleState = Exclude<PublicAccountArticleState, "unsupport
 
 /** One article as the content library holds it. */
 export interface StoredArticle {
+  /** Local storage time, not a claim of a fresh network read. */
+  storedAt?: string;
   reviewId: string;
   state: StorableArticleState;
   review: ReviewSingleResponse;
@@ -965,7 +967,7 @@ export interface StoredArticle {
   diagnostics?: PublicAccountDiagnostic[];
 }
 
-export type PutArticleInput = Omit<StoredArticle, "sourceSha256">;
+export type PutArticleInput = Omit<StoredArticle, "sourceSha256" | "storedAt">;
 
 /**
  * The slice of the content library the public-account paths use.

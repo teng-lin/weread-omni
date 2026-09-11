@@ -219,4 +219,8 @@ export {
   buildPublicAccountFeed,
   exportPublicAccountArchive,
   PublicAccountArtifactError,
+  PublicAccountReadError,
+  type PublicAccountReadOptions,
+  type PublicAccountReadResult,
+  readPublicAccountArticle,
 } from "./public-accounts.js";

@@ -14,7 +14,7 @@
 
 ## Entry points
 
-### `weread-omni` — dist/index.d.ts (193 exports)
+### `weread-omni` — dist/index.d.ts (197 exports)
 
 - `ALLOWED_EXT` — const — dist/api/import-guards.d.ts
 - `AccessToken` — interface — dist/auth/token.d.ts
@@ -117,6 +117,9 @@
 - `PublicAccountFeedSource` — type — dist/api/types.d.ts
 - `PublicAccountLibrary` — interface — dist/api/types.d.ts
 - `PublicAccountLibraryMode` — type — dist/api/types.d.ts
+- `PublicAccountReadError` — class — dist/public-accounts.d.ts
+- `PublicAccountReadOptions` — interface — dist/public-accounts.d.ts
+- `PublicAccountReadResult` — interface — dist/public-accounts.d.ts
 - `PublicAccountSubscriptionsOptions` — interface — dist/api/types.d.ts
 - `PublicAccountSubscriptionsPage` — interface — dist/api/types.d.ts
 - `PutArticleInput` — type — dist/api/types.d.ts
@@ -203,6 +206,7 @@
 - `login` — function — dist/auth/qrlogin.d.ts
 - `mintAccessToken` — function — dist/auth/token.d.ts
 - `pollForCode` — function — dist/auth/qrlogin.d.ts
+- `readPublicAccountArticle` — function — dist/public-accounts.d.ts
 - `requestQr` — function — dist/auth/qrlogin.d.ts
 - `resolveProfile` — function — dist/profile.d.ts
 - `saveCredentials` — function — dist/auth/credentials.d.ts
@@ -1720,6 +1724,47 @@ type PublicAccountLibraryMode = "prefer" | "refresh"
 //   readonly [key: number]: string
 ```
 
+### `PublicAccountReadError` — dist/public-accounts.d.ts
+
+```ts
+class PublicAccountReadError extends WeReadError {
+  new (result: PublicAccountReadResult): PublicAccountReadError
+  readonly result: PublicAccountReadResult
+}
+```
+
+### `PublicAccountReadOptions` — dist/public-accounts.d.ts
+
+```ts
+interface PublicAccountReadOptions {
+  library?: PublicAccountLibrary
+  libraryMode?: PublicAccountLibraryMode
+  signal?: AbortSignal
+}
+```
+
+### `PublicAccountReadResult` — dist/public-accounts.d.ts
+
+```ts
+interface PublicAccountReadResult {
+  accountName: string | null
+  cachedAt: string | null
+  completeness: "partial" | "unavailable" | "unverified"
+  contentHtml: string | null
+  diagnostics: PublicAccountDiagnostic[]
+  fetchedAt: string | null
+  fromCache: boolean
+  markdown: string | null
+  publishedAt: string | null
+  readAt: string
+  reviewId: string
+  sourceSha256: string | null
+  sourceUrl: string
+  status: "partial" | "readable" | "unavailable"
+  title: string | null
+}
+```
+
 ### `PublicAccountSubscriptionsOptions` — dist/api/types.d.ts
 
 ```ts
@@ -2392,6 +2437,7 @@ interface StoredArticle {
   sourceSha256?: string
   sourceUrl?: string
   state: StorableArticleState
+  storedAt?: string
   title?: string
 }
 ```
@@ -2740,6 +2786,12 @@ function port(value: string): number
 
 ```ts
 function printQr(url: string): Promise<void>
+```
+
+### `readPublicAccountArticle` — dist/public-accounts.d.ts
+
+```ts
+function readPublicAccountArticle(client: SingleArticleClient, docUrl: string, options?: PublicAccountReadOptions): Promise<PublicAccountReadResult>
 ```
 
 ### `registerClientPlugins` — dist/plugin.d.ts

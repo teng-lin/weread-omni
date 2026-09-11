@@ -87,6 +87,7 @@ interface ChapterRow {
 }
 
 interface ArticleRow {
+  stored_at: string;
   mp_account_id: string | null;
   title: string | null;
   publication_time: number | null;
@@ -610,7 +611,7 @@ export class ContentLibrary {
     const row = this.#prepared(
       `SELECT mp_account_id, title, publication_time, source_url, state,
               source_sha256, source_byte_length, markdown_sha256, content_html_sha256,
-              fallback_html_sha256, mp_info_json, review_json, diagnostics_json
+              fallback_html_sha256, mp_info_json, review_json, diagnostics_json, stored_at
        FROM article WHERE account_id = ? AND review_id = ?`,
     ).get(this.#accountId, checkedIdentifier(reviewId, "reviewId")) as ArticleRow | undefined;
     if (row === undefined) return undefined;
@@ -639,6 +640,7 @@ export class ContentLibrary {
     return {
       reviewId,
       state: row.state,
+      storedAt: row.stored_at,
       review,
       ...(row.mp_account_id === null ? {} : { accountId: row.mp_account_id }),
       ...(row.title === null ? {} : { title: row.title }),

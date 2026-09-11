@@ -28,8 +28,49 @@ import type {
 } from "./api/types.js";
 import { einkDevice } from "./device-ua.js";
 import { AuthError, TransportError, WeReadApiError, WeReadError } from "./errors.js";
+import { redact } from "./redact.js";
 
 type PublicAccountClient = Pick<CanonicalClient, "publicAccounts" | "review">;
+type ArticleClient = {
+  publicAccounts: Pick<CanonicalClient["publicAccounts"], "paidContent">;
+  review: Pick<CanonicalClient["review"], "single">;
+};
+type SingleArticleClient = ArticleClient & {
+  publicAccounts: Pick<CanonicalClient["publicAccounts"], "resolveArticle">;
+};
+
+export interface PublicAccountReadOptions {
+  signal?: AbortSignal;
+  library?: PublicAccountLibrary;
+  libraryMode?: PublicAccountLibraryMode;
+}
+
+export interface PublicAccountReadResult {
+  reviewId: string;
+  title: string | null;
+  accountName: string | null;
+  sourceUrl: string;
+  publishedAt: string | null;
+  readAt: string;
+  fetchedAt: string | null;
+  cachedAt: string | null;
+  fromCache: boolean;
+  status: "readable" | "partial" | "unavailable";
+  /** Readable HTML is not proof that the publisher's entire article was returned. */
+  completeness: "unverified" | "partial" | "unavailable";
+  markdown: string | null;
+  contentHtml: string | null;
+  sourceSha256: string | null;
+  diagnostics: PublicAccountDiagnostic[];
+}
+
+export class PublicAccountReadError extends WeReadError {
+  readonly result: PublicAccountReadResult;
+  constructor(result: PublicAccountReadResult) {
+    super(result.diagnostics[0]?.message ?? "article body is unavailable");
+    this.result = result;
+  }
+}
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -111,6 +152,9 @@ interface RetrievedSource {
 }
 
 interface ResolvedArticle extends ArticleReference {
+  fromCache?: boolean;
+  fetchedAt?: string;
+  cachedAt?: string;
   accountName: string;
   response: ReviewSingleResponse;
   review: ReviewDetail;
@@ -356,7 +400,7 @@ const PAID_ARTICLE_PAY_TYPE = 2;
  * as a URL rather than as content, and the caller falls through to its normal download.
  */
 async function retrievePaid(
-  client: PublicAccountClient,
+  client: ArticleClient,
   docUrl: string,
   signal?: AbortSignal,
 ): Promise<{ html?: string; previewUrl?: string; fee?: number }> {
@@ -375,7 +419,7 @@ async function retrieveSource(
   reference: ArticleReference,
   mpInfo: ArticleMpInfo,
   signal?: AbortSignal,
-  client?: PublicAccountClient,
+  client?: ArticleClient,
 ): Promise<RetrievedSource> {
   let initial: URL;
   try {
@@ -616,6 +660,8 @@ async function resolveFromLibrary(
 
   return {
     ...reference,
+    fromCache: true,
+    cachedAt: stored.storedAt,
     accountName: stored.mpInfo?.mp_name ?? reference.accountTitle ?? reference.accountId,
     response: stored.review,
     review: stored.review.review,
@@ -641,7 +687,7 @@ async function rememberArticle(
       reviewId: article.reviewId,
       state: article.state,
       review: article.response,
-      accountId: article.accountId,
+      ...(article.accountId ? { accountId: article.accountId } : {}),
       title: article.title,
       publicationTime: article.publicationTime,
       sourceUrl: article.source.sourceUrl,
@@ -668,7 +714,7 @@ async function rememberArticle(
 }
 
 async function resolveReferences(
-  client: PublicAccountClient,
+  client: ArticleClient,
   references: ArticleReference[],
   signal: AbortSignal | undefined,
   diagnostics: PublicAccountDiagnostic[],
@@ -721,6 +767,9 @@ async function resolveReferences(
         continue;
       }
 
+      if (!reference.accountId && /^MP_WXS_\d+$/.test(response.review.bookId ?? "")) {
+        reference.accountId = response.review.bookId as string;
+      }
       const mpInfo = response.review.mpInfo;
       const source = mpInfo ? await retrieveSource(reference, mpInfo, signal, client) : undefined;
       if (source) diagnostics.push(...source.diagnostics);
@@ -735,6 +784,8 @@ async function resolveReferences(
               : 0;
       const article: ResolvedArticle = {
         ...reference,
+        fromCache: false,
+        fetchedAt: source?.state !== "unsupported" && source ? new Date().toISOString() : undefined,
         accountName: mpInfo?.mp_name ?? reference.accountTitle ?? reference.accountId,
         response,
         review: response.review,
@@ -750,6 +801,60 @@ async function resolveReferences(
   };
   await Promise.all([worker(), worker()]);
   return resolved;
+}
+
+/** Read one URL through the same source, entitlement and library pipeline as feed/export. */
+export async function readPublicAccountArticle(
+  client: SingleArticleClient,
+  docUrl: string,
+  options: PublicAccountReadOptions = {},
+): Promise<PublicAccountReadResult> {
+  // Validate before passing user input to any upstream endpoint.
+  const inputUrl = sourceUrl(docUrl).href;
+  options.signal?.throwIfAborted();
+  const { reviewId } = await client.publicAccounts.resolveArticle(inputUrl, { signal: options.signal });
+  if (!reviewId.trim()) throw new Error("resolved article ID is empty");
+  // Resolver IDs are opaque. Use a recognizable prefix only as an account hint;
+  // review metadata can supply the account for other ID formats.
+  const accountId = /^(MP_WXS_\d+)_\S+$/.exec(reviewId)?.[1] ?? "";
+  const diagnostics: PublicAccountDiagnostic[] = [];
+  const [article] = await resolveReferences(
+    client,
+    [{ accountId, reviewId, article: { reviewId } }],
+    options.signal,
+    diagnostics,
+    options.library,
+    options.libraryMode,
+  );
+  const source = article?.source;
+  const hasBody = Boolean(source?.markdown?.trim() || source?.contentHtml?.trim());
+  const status =
+    !hasBody || article?.state === "unsupported"
+      ? "unavailable"
+      : article?.state === "partial"
+        ? "partial"
+        : "readable";
+  const publicationTime = article?.publicationTime;
+  const date = publicationTime ? publicationDate(publicationTime) : undefined;
+  return {
+    reviewId,
+    title: article?.mpInfo?.title ?? article?.review.title ?? null,
+    accountName: article?.mpInfo?.mp_name ?? null,
+    sourceUrl: source?.sourceUrl || inputUrl,
+    publishedAt: date && Number.isFinite(date.getTime()) ? date.toISOString() : null,
+    readAt: new Date().toISOString(),
+    fetchedAt: article?.fetchedAt ?? null,
+    cachedAt: article?.cachedAt ?? null,
+    fromCache: article?.fromCache ?? false,
+    status,
+    completeness: status === "readable" ? "unverified" : status,
+    markdown: status === "unavailable" ? null : (source?.markdown ?? null),
+    contentHtml: status === "unavailable" ? null : (source?.contentHtml ?? null),
+    sourceSha256: source?.sourceSha256 ?? null,
+    // Diagnostics can contain upstream/plugin errors, including on successful
+    // preview reads and cache replay. Preserve article content verbatim.
+    diagnostics: diagnostics.map((item) => ({ ...item, message: redact(item.message) })),
+  };
 }
 
 async function collectArticles(
