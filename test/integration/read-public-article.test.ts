@@ -107,11 +107,74 @@ describe("single public article", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("rejects a resolved non-article ID", async () => {
+  it("accepts opaque review IDs and caches the account from review metadata", async () => {
     const api = client();
-    api.publicAccounts.resolveArticle.mockResolvedValue({ url: URL, reviewId: "other-review" });
-    await expect(readPublicAccountArticle(api, URL)).rejects.toThrow("not a public-account article");
-    expect(api.review.single).not.toHaveBeenCalled();
+    const store = await library();
+    source();
+    api.publicAccounts.resolveArticle.mockResolvedValue({ url: URL, reviewId: "review-1" });
+    const response = await api.review.single();
+    response.review = { ...response.review, reviewId: "review-1", bookId: "MP_WXS_7" };
+    api.review.single.mockResolvedValue(response);
+    const result = await readPublicAccountArticle(api, URL, { library: store });
+    expect(result).toMatchObject({ reviewId: "review-1", status: "readable" });
+    expect(await store.getArticle("review-1")).toMatchObject({ accountId: "MP_WXS_7" });
+    expect(await readPublicAccountArticle(api, URL, { library: store })).toMatchObject({ fromCache: true });
+  });
+
+  it.each([1700000000, 1700000000000])("normalizes publication time %s on fresh and cached reads", async (time) => {
+    const api = client();
+    const store = await library();
+    source();
+    const response = await api.review.single();
+    response.review = { ...response.review, mpInfo: { ...response.review?.mpInfo, time } };
+    api.review.single.mockResolvedValue(response);
+    for (let i = 0; i < 2; i++) {
+      expect(await readPublicAccountArticle(api, URL, { library: store })).toMatchObject({
+        publishedAt: "2023-11-14T22:13:20.000Z",
+        fromCache: i === 1,
+      });
+    }
+  });
+
+  it("redacts nested diagnostic errors throughout CLI stderr", async () => {
+    const api = client();
+    api.review.single.mockRejectedValue(new Error("request failed: access_token=FAKE_REVIEW_SECRET"));
+    const stdout = sink();
+    const stderr = sink();
+    const code = await runCli(["node", "weread-omni", "--json", "public-accounts", "read-article", URL], {
+      stores: [{ name: "default", backend: "eink", client: api }],
+      store: "default",
+      stdout,
+      stderr,
+    });
+    expect(code).toBe(1);
+    expect(stdout.read()).toBe("");
+    expect(stderr.read()).not.toContain("FAKE_REVIEW_SECRET");
+    expect(JSON.parse(stderr.read()).article.diagnostics[0].message).toContain("access_token=[REDACTED]");
+  });
+
+  it("redacts cached diagnostics without changing article text", async () => {
+    const api = client();
+    const store = await library();
+    const response = await api.review.single();
+    const markdown = "Article example: access_token=DOCUMENTED_EXAMPLE";
+    await store.putArticle({
+      reviewId: ID,
+      review: response,
+      state: "partial",
+      markdown,
+      diagnostics: [
+        {
+          code: "SOURCE_PAYWALL_PREVIEW",
+          accountId: "MP_WXS_7",
+          message: "preview lookup: access_token=FAKE_CACHED_SECRET",
+        },
+      ],
+    });
+    const result = await readPublicAccountArticle(api, URL, { library: store });
+    expect(result).toMatchObject({ fromCache: true, status: "partial", markdown });
+    expect(result.diagnostics[0]?.message).toBe("preview lookup: access_token=[REDACTED]");
+    expect((await store.getArticle(ID))?.diagnostics?.[0]?.message).toContain("FAKE_CACHED_SECRET");
   });
 
   it("replays cached content with its storage time, refreshes, and permits a no-library read", async () => {

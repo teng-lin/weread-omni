@@ -28,6 +28,7 @@ import type {
 } from "./api/types.js";
 import { einkDevice } from "./device-ua.js";
 import { AuthError, TransportError, WeReadApiError, WeReadError } from "./errors.js";
+import { redact } from "./redact.js";
 
 type PublicAccountClient = Pick<CanonicalClient, "publicAccounts" | "review">;
 type ArticleClient = {
@@ -686,7 +687,7 @@ async function rememberArticle(
       reviewId: article.reviewId,
       state: article.state,
       review: article.response,
-      accountId: article.accountId,
+      ...(article.accountId ? { accountId: article.accountId } : {}),
       title: article.title,
       publicationTime: article.publicationTime,
       sourceUrl: article.source.sourceUrl,
@@ -766,6 +767,9 @@ async function resolveReferences(
         continue;
       }
 
+      if (!reference.accountId && /^MP_WXS_\d+$/.test(response.review.bookId ?? "")) {
+        reference.accountId = response.review.bookId as string;
+      }
       const mpInfo = response.review.mpInfo;
       const source = mpInfo ? await retrieveSource(reference, mpInfo, signal, client) : undefined;
       if (source) diagnostics.push(...source.diagnostics);
@@ -809,8 +813,10 @@ export async function readPublicAccountArticle(
   const inputUrl = sourceUrl(docUrl).href;
   options.signal?.throwIfAborted();
   const { reviewId } = await client.publicAccounts.resolveArticle(inputUrl, { signal: options.signal });
-  const accountId = /^(MP_WXS_\d+)_\S+$/.exec(reviewId)?.[1];
-  if (!accountId) throw new Error("resolved ID is not a public-account article");
+  if (!reviewId.trim()) throw new Error("resolved article ID is empty");
+  // Resolver IDs are opaque. Use a recognizable prefix only as an account hint;
+  // review metadata can supply the account for other ID formats.
+  const accountId = /^(MP_WXS_\d+)_\S+$/.exec(reviewId)?.[1] ?? "";
   const diagnostics: PublicAccountDiagnostic[] = [];
   const [article] = await resolveReferences(
     client,
@@ -829,7 +835,7 @@ export async function readPublicAccountArticle(
         ? "partial"
         : "readable";
   const publicationTime = article?.publicationTime;
-  const date = publicationTime ? new Date(publicationTime * 1000) : undefined;
+  const date = publicationTime ? publicationDate(publicationTime) : undefined;
   return {
     reviewId,
     title: article?.mpInfo?.title ?? article?.review.title ?? null,
@@ -845,7 +851,9 @@ export async function readPublicAccountArticle(
     markdown: status === "unavailable" ? null : (source?.markdown ?? null),
     contentHtml: status === "unavailable" ? null : (source?.contentHtml ?? null),
     sourceSha256: source?.sourceSha256 ?? null,
-    diagnostics,
+    // Diagnostics can contain upstream/plugin errors, including on successful
+    // preview reads and cache replay. Preserve article content verbatim.
+    diagnostics: diagnostics.map((item) => ({ ...item, message: redact(item.message) })),
   };
 }
 
