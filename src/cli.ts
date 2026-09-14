@@ -595,6 +595,10 @@ export function createProgram<TClient extends CliOperationsClient = MobileApiCli
   retainCliOperations(program, visibleOperations);
 
   if (dependencies.extendStoreProgram) {
+    const extensionLibrary = dependencies.library;
+    if (extensionLibrary !== undefined && !(extensionLibrary instanceof ContentLibrary)) {
+      throw new TypeError("CLI extension library must be a ContentLibrary");
+    }
     const storeContext: CliStoreCommandContext = {
       getStore: () => {
         if (!registry) throw new Error("this command requires an opened account");
@@ -606,7 +610,7 @@ export function createProgram<TClient extends CliOperationsClient = MobileApiCli
       isTTY,
       env,
       ...(dependencies.signal ? { signal: dependencies.signal } : {}),
-      ...(dependencies.library ? { library: dependencies.library as ContentLibrary } : {}),
+      ...(extensionLibrary ? { library: extensionLibrary } : {}),
     };
     dependencies.extendStoreProgram(program, storeContext);
   } else {

@@ -1058,6 +1058,19 @@ describe("CLI store routing and capability policy", () => {
     expect(stdout.read()).toContain("download");
   });
 
+  it("rejects a partial article library from the full extension context", () => {
+    expect(() =>
+      createProgram({
+        stores: [{ name: "account", backend: "mobile-api", client: {} }],
+        library: {
+          getArticle: vi.fn(async () => undefined),
+          putArticle: vi.fn(async () => undefined),
+        },
+        extendStoreProgram: vi.fn(),
+      }),
+    ).toThrow("CLI extension library must be a ContentLibrary");
+  });
+
   it("registers lifecycle commands from the registry union", () => {
     const stores = [
       {
