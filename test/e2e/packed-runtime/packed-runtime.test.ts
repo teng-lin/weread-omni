@@ -78,6 +78,13 @@ beforeAll(async () => {
       "export default {",
       '  meta: { name: "packed-test-plugin", version: "0.1.0", apiVersion: 1 },',
       "  clients: { packed: provider },",
+      "  cli(program, context) {",
+      '    const book = program.commands.find((command) => command.name() === "book");',
+      '    book.command("plugin-probe").description("Inspect the selected plugin store").action(() => {',
+      "      const store = context.getStore();",
+      '      context.stdout.write(JSON.stringify({ account: store.name, backend: store.backend }) + "\\n");',
+      "    });",
+      "  },",
       "};",
       "",
     ].join("\n"),
@@ -206,6 +213,16 @@ describe("packed CLI", () => {
       deviceId: credentialEnv.WEREAD_DEVICE_ID,
       source: "file",
     });
+  }, 30_000);
+
+  it("loads plugin commands into the packed CLI", async () => {
+    const help = await runBin("weread-omni", ["book", "--help"]);
+    expect(help.code, help.stderr).toBe(0);
+    expect(help.stdout).toContain("plugin-probe");
+
+    const result = await runBin("weread-omni", ["book", "plugin-probe"]);
+    expect(result.code, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({ account: "default", backend: "packed" });
   }, 30_000);
 
   it("emits exactly one JSON document for a successful read", async () => {

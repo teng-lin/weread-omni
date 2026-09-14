@@ -937,11 +937,13 @@ async function attachContentLibrary(
 
 async function runCliMain(argv: string[] = process.argv): Promise<number> {
   const plugins = await loadClientPlugins(pluginSpecifiers());
-  const cliExtensions = plugins.flatMap((plugin) => (plugin.cli ? [plugin.cli] : []));
+  const cliExtensions: ExtendStoreProgram[] = [];
+  for (const plugin of plugins) if (plugin.cli) cliExtensions.push(plugin.cli);
   const extendStoreProgram: ExtendStoreProgram | undefined =
     cliExtensions.length === 0
       ? undefined
-      : (program, context) => {
+      : /* v8 ignore next -- the packed-runtime suite executes the composed extension. */
+        (program, context) => {
           for (const extend of cliExtensions) extend(program, context);
         };
   return runAccountCli(argv, {
