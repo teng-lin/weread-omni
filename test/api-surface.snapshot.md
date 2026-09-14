@@ -722,9 +722,12 @@ interface CliStore {
 ```ts
 interface CliStoreCommandContext {
   confirm: (message: string) => Promise<boolean>
+  env: ProcessEnv
   getStore: () => CliStore
   isTTY: boolean
+  library?: ContentLibrary
   signal?: AbortSignal
+  stderr: OutputWriter
   stdout: OutputWriter
 }
 ```
@@ -812,6 +815,7 @@ interface ClientOpenResult {
 
 ```ts
 interface ClientPlugin {
+  cli?: ExtendStoreProgram
   clients: Readonly<Record<string, ClientProvider>>
   meta: { name: string; version: string; apiVersion: 1; }
 }

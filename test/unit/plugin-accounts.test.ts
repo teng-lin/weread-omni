@@ -104,7 +104,8 @@ describe("client plugins and account storage", () => {
       modulePath,
       `export default {
         meta: { name: "loaded-plugin", version: "0.1.0", apiVersion: 1 },
-        clients: { loaded: { async login() {}, async open() {} } }
+        clients: { loaded: { async login() {}, async open() {} } },
+        cli() {}
       };`,
     );
 
@@ -113,8 +114,17 @@ describe("client plugins and account storage", () => {
       "example-plugin",
     ]);
     await expect(loadClientPlugins([modulePath])).resolves.toMatchObject([
-      { meta: { name: "loaded-plugin", version: "0.1.0" }, clients: { loaded: {} } },
+      { meta: { name: "loaded-plugin", version: "0.1.0" }, clients: { loaded: {} }, cli: expect.any(Function) },
     ]);
+  });
+
+  it("rejects a non-callable CLI contribution", () => {
+    expect(
+      () =>
+        new AccountManager({
+          plugins: [{ ...plugin(), cli: {} } as unknown as ClientPlugin],
+        }),
+    ).toThrow("cli must be callable");
   });
 
   it("persists one provider per account with private file modes and reopens it", async () => {

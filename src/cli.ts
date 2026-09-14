@@ -107,9 +107,13 @@ export type ExtendProgram<TClient extends CliOperationsClient = MobileApiClient>
 export interface CliStoreCommandContext {
   getStore: () => CliStore;
   stdout: OutputWriter;
+  stderr: OutputWriter;
   confirm: (message: string) => Promise<boolean>;
   isTTY: boolean;
+  env: NodeJS.ProcessEnv;
   signal?: AbortSignal;
+  /** The library attached to the selected account, absent for help and when disabled or unavailable. */
+  library?: ContentLibrary;
 }
 
 export type ExtendStoreProgram = (program: Command, context: CliStoreCommandContext) => void;
@@ -297,8 +301,8 @@ export function createProgram<TClient extends CliOperationsClient = MobileApiCli
   ) {
     throw new Error("CLI stores cannot be mixed with getClient, getIdentity, or extendProgram");
   }
-  if (!registryMode && dependencies.extendStoreProgram !== undefined) {
-    throw new Error("extendStoreProgram requires CLI stores");
+  if (!registryMode && dependencies.extendStoreProgram !== undefined && accountManager === undefined) {
+    throw new Error("extendStoreProgram requires CLI stores or an account manager");
   }
   const registry = registryMode ? normalizeCliStores(dependencies.stores as readonly CliStore[]) : undefined;
   const registryByName = new Map(registry?.map((entry) => [entry.store.name, entry]));
@@ -590,15 +594,21 @@ export function createProgram<TClient extends CliOperationsClient = MobileApiCli
   registerWriteCommands(program, builtinContext);
   retainCliOperations(program, visibleOperations);
 
-  if (registry) {
+  if (dependencies.extendStoreProgram) {
     const storeContext: CliStoreCommandContext = {
-      getStore: () => selectedRegistryEntry().store,
+      getStore: () => {
+        if (!registry) throw new Error("this command requires an opened account");
+        return selectedRegistryEntry().store;
+      },
       stdout,
+      stderr,
       confirm,
       isTTY,
+      env,
       ...(dependencies.signal ? { signal: dependencies.signal } : {}),
+      ...(dependencies.library ? { library: dependencies.library as ContentLibrary } : {}),
     };
-    dependencies.extendStoreProgram?.(program, storeContext);
+    dependencies.extendStoreProgram(program, storeContext);
   } else {
     const commandContext: CommandContext<TClient> = {
       getClient,
@@ -927,7 +937,17 @@ async function attachContentLibrary(
 
 async function runCliMain(argv: string[] = process.argv): Promise<number> {
   const plugins = await loadClientPlugins(pluginSpecifiers());
-  return runAccountCli(argv, { accountManager: new AccountManager({ plugins }) });
+  const cliExtensions = plugins.flatMap((plugin) => (plugin.cli ? [plugin.cli] : []));
+  const extendStoreProgram: ExtendStoreProgram | undefined =
+    cliExtensions.length === 0
+      ? undefined
+      : (program, context) => {
+          for (const extend of cliExtensions) extend(program, context);
+        };
+  return runAccountCli(argv, {
+    accountManager: new AccountManager({ plugins }),
+    ...(extendStoreProgram ? { extendStoreProgram } : {}),
+  });
 }
 
 /**

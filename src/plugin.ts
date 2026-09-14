@@ -3,6 +3,7 @@ import { isAbsolute } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { CanonicalClient } from "./api/client.js";
 import { PUBLIC_OPERATIONS } from "./api/operations.js";
+import type { ExtendStoreProgram } from "./cli.js";
 
 export const CLIENT_PLUGIN_API_VERSION = 1 as const;
 export const CLIENT_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
@@ -64,6 +65,12 @@ export interface ClientPlugin {
     apiVersion: typeof CLIENT_PLUGIN_API_VERSION;
   };
   clients: Readonly<Record<string, ClientProvider>>;
+  /**
+   * Register commands that operate on the account selected by the core CLI.
+   *
+   * Optional so existing API-v1 client-only plugins remain compatible.
+   */
+  cli?: ExtendStoreProgram;
 }
 
 export interface RegisteredClient {
@@ -95,6 +102,9 @@ export function validateClientPlugin(value: unknown, source = "client plugin"): 
   for (const [id, candidate] of Object.entries(value.clients)) {
     if (!CLIENT_ID_PATTERN.test(id)) throw new TypeError(`${source} has invalid client id ${JSON.stringify(id)}`);
     provider(candidate, `${source} client ${JSON.stringify(id)}`);
+  }
+  if (value.cli !== undefined && typeof value.cli !== "function") {
+    throw new TypeError(`${source} cli must be callable`);
   }
   return value as unknown as ClientPlugin;
 }

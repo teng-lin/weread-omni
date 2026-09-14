@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { AccountManager } from "../../src/accounts.js";
 import { PUBLIC_OPERATIONS } from "../../src/api/operations.js";
 import { type Credentials, saveCredentials, storePath } from "../../src/auth/credentials.js";
 import {
@@ -14,6 +15,7 @@ import {
   type CommandContext,
   createProgram,
   isMain,
+  runAccountCli,
   runCli,
 } from "../../src/cli.js";
 import { AuthError, WeReadApiError } from "../../src/errors.js";
@@ -1032,6 +1034,28 @@ describe("CLI store routing and capability policy", () => {
 
     expect(extendStoreProgram).toHaveBeenCalledOnce();
     expect(stdout.read()).toBe("beta:hosted-api\n");
+  });
+
+  it("registers account extensions for help without opening an account", async () => {
+    const stdout = sink();
+    const directory = mkdtempSync(join(tmpdir(), "weread-cli-extension-"));
+    directories.push(directory);
+    const extendStoreProgram = vi.fn((program: Command) => {
+      const book = commandAt(program, "book");
+      book.command("download").description("Download a book");
+    });
+
+    await expect(
+      runAccountCli(["node", "weread-omni", "book", "--help"], {
+        accountManager: new AccountManager({ env: { WEREAD_CONFIG_DIR: directory } }),
+        stdout: stdout.stream,
+        stderr: sink().stream,
+        extendStoreProgram,
+      }),
+    ).resolves.toBe(0);
+
+    expect(extendStoreProgram).toHaveBeenCalledOnce();
+    expect(stdout.read()).toContain("download");
   });
 
   it("registers lifecycle commands from the registry union", () => {
