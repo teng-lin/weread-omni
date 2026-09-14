@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | English
 
-[Changelog](CHANGELOG.md) | [Security policy](SECURITY.md)
+[Changelog](CHANGELOG.md) | [Security policy](SECURITY.md) | [API Endpoints](docs/endpoints.md)
 
 weread-omni is a full-coverage agent skill and unofficial SDK for WeRead. Sign in by QR code and you get 40 read-and-write operations, far beyond the 6 read-only capabilities the official Skill provides.
 

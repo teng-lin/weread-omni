@@ -2,7 +2,7 @@
 
 简体中文 | [English](README.en.md)
 
-[更新日志](CHANGELOG.md) | [安全政策](SECURITY.md)
+[更新日志](CHANGELOG.md) | [安全政策](SECURITY.md) | [API 端点清单](docs/endpoints.md)
 
 weread-omni 是微信读书的全能智能体技能和非官方 SDK。微信扫码即可用，支持 40 项读写操作，远超官方支持的 6 项只读技能。
 
