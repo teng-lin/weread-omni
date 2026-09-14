@@ -2,11 +2,16 @@
 
 > **Target Binary:** `weread-eink-2.1.2.apk` (13 DEX files, 315,090 functions, 287,321 unique strings)
 
-> **Reference:** `weread-omni` SDK
+> **Reference:** `weread-omni` SDK (40 high-level operations)
 
 ## 1. Executive Summary & Coverage Matrix
 
-| Functional Domain | Total Endpoints | `weread-omni` Supported |
+> [!NOTE]
+> **Operations vs. Endpoints:** `README.md` documents **40 user-facing operations** across the CLI, SDK, and Agent Skill.
+> Several operations share common underlying API endpoints (e.g., `shelf.markFinished` and `shelf.markReading` both hit `/book/markstatus`; `shelf.add` and `publicAccounts.subscribe` both hit `/shelf/add`).
+> Across all 40 operations, `weread-omni` utilizes **35 unique HTTP endpoints**: **30** originate from the Eink 2.1.2 client cataloged below, and **5** originate from modern Web/Mobile features (`/ai/chatv2`, `/ai/chat/suggest`, `/readdata/detail`, `/shelf/top`, `/user/allNotes`).
+
+| Functional Domain | Total Eink Endpoints | Endpoints Used by `weread-omni` |
 | :--- | :---: | :---: |
 | **Audio & TTS Engine** | 26 | 0 |
 | **Booklists (书单)** | 12 | 0 |
@@ -24,16 +29,54 @@
 | **Utility, Dictionary & Activities** | 4 | 0 |
 | **TOTAL** | **184** | **30** |
 
-### Architectural Takeaways
+## 2. Operations vs. Endpoints Mapping (All 40 Operations)
 
-1. **Dual Transport Generations in Eink 2.1.2:**
-   - **Generation 1 (Retrofit2 / RxJava):** 159 endpoints declared across 77 interface classes (e.g. `BookService`, `ShelfService`, `BasePayService`, `WRLoginService`).
-   - **Generation 2 (Kotlin Coroutines / Ktor / OkHttp):** 25 endpoints located in `com.tencent.weread.ds.*` RemoteServices (e.g. `AlbumRemoteService`, `TTSRemoteService`, `MpRemoteService`).
-2. **Support in `weread-omni`:**
-   - **Core Coverage (30 endpoints):** Covers reading workflows including book metadata (`/book/info`, `/book/detailinfo`), chapter indexes (`/book/chapterInfos`), progress tracking (`/book/getProgress`), highlights & underlines (`/book/underlines`, `/book/bookmarklist`), shelf synchronization (`/shelf/sync`, `/shelf/add`), and search (`/store/search`).
-   - **Additional Web/Mobile Endpoints (5 endpoints):** `/ai/chatv2`, `/ai/chat/suggest`, `/readdata/detail`, `/shelf/top`, `/user/allNotes`.
+Below is the complete reconciliation between the **40 high-level operations** documented in `README.md` and their underlying HTTP endpoints:
 
-## 2. Infrastructure & Base Hosts
+| # | Resource | Operation / Method in `README.md` | HTTP Verb | Endpoint Path | Origin / Binary |
+| :---: | :--- | :--- | :---: | :--- | :--- |
+| 1 | `search` | `search.books(keyword, options?)` | GET | `/store/search` | Eink 2.1.2 |
+| 2 | `search` | `search.suggest(keyword, options?)` | GET | `/store/suggest` | Eink 2.1.2 |
+| 3 | `book` | `book.info(bookId)` | GET | `/book/info` | Eink 2.1.2 |
+| 4 | `book` | `book.detail(bookId, options?)` | GET | `/book/detailinfo` | Eink 2.1.2 |
+| 5 | `book` | `book.chapters(bookId)` | POST | `/book/chapterInfos` | Eink 2.1.2 |
+| 6 | `book` | `book.progress(bookId)` | GET | `/book/getProgress` | Eink 2.1.2 |
+| 7 | `shelf` | `shelf.sync()` | GET | `/shelf/sync` | Eink 2.1.2 |
+| 8 | `shelf` | `shelf.add(bookId)` | POST | `/shelf/add` | Eink 2.1.2 |
+| 9 | `shelf` | `shelf.delete(bookId)` | POST | `/shelf/delete` | Eink 2.1.2 |
+| 10 | `shelf` | `shelf.pin(bookId, top?)` | POST | `/shelf/top` | Web / Mobile |
+| 11 | `shelf` | `shelf.setPrivate(bookId, secret?)` | POST | `/book/secret` | Eink 2.1.2 |
+| 12 | `shelf` | `shelf.markFinished(bookId, finished?)` | POST | `/book/markstatus` | Eink 2.1.2 |
+| 13 | `shelf` | `shelf.markReading(bookId, reading?)` | POST | `/book/markstatus` | Eink 2.1.2 |
+| 14 | `publicAccounts` | `publicAccounts.subscriptions(options?)` | GET | `/shelf/sync` | Eink 2.1.2 |
+| 15 | `publicAccounts` | `publicAccounts.articles(accountId, options?)` | GET | `/mp/chapters` | Eink 2.1.2 |
+| 16 | `publicAccounts` | `publicAccounts.resolveArticle(docUrl, options?)` | POST | `/mp/getreviewid` | Eink 2.1.2 |
+| 17 | `publicAccounts` | `publicAccounts.paidContent(docUrl, options?)` | POST | `/mp/getpaidinfo` | Eink 2.1.2 |
+| 18 | `publicAccounts` | `publicAccounts.subscribe(accountId)` | POST | `/shelf/add` | Eink 2.1.2 |
+| 19 | `publicAccounts` | `publicAccounts.unsubscribe(accountId)` | POST | `/shelf/delete` | Eink 2.1.2 |
+| 20 | `notes` | `notes.notebooks(options?)` | GET | `/user/notebooks` | Eink 2.1.2 |
+| 21 | `notes` | `notes.recent(options?)` | GET | `/user/allNotes` | Web / Mobile |
+| 22 | `notes` | `notes.bookmarks(bookId, options?)` | GET | `/book/bookmarklist` | Eink 2.1.2 |
+| 23 | `notes` | `notes.mine(bookId, options?)` | GET | `/review/list` | Eink 2.1.2 |
+| 24 | `notes` | `notes.best(bookId, options?)` | GET | `/book/bestbookmarks` | Eink 2.1.2 |
+| 25 | `notes` | `notes.readReviews(bookId, chapterUid, reviews, options?)` | POST | `/book/readreviews` | Eink 2.1.2 |
+| 26 | `notes` | `notes.underlines(bookId, chapterUid, options?)` | GET | `/book/underlines` | Eink 2.1.2 |
+| 27 | `notes` | `notes.addBookmark(input)` | POST | `/book/addBookmark` | Eink 2.1.2 |
+| 28 | `notes` | `notes.updateBookmark(input)` | POST | `/book/updateBookmark` | Eink 2.1.2 |
+| 29 | `notes` | `notes.removeBookmark(bookmarkId, options?)` | POST | `/book/removeBookmark` | Eink 2.1.2 |
+| 30 | `review` | `review.list(bookId, options?)` | GET | `/review/list` | Eink 2.1.2 |
+| 31 | `review` | `review.single(reviewId, options?)` | GET | `/review/single` | Eink 2.1.2 |
+| 32 | `review` | `review.add(input)` | POST | `/review/add` | Eink 2.1.2 |
+| 33 | `review` | `review.edit(reviewId, content, options?)` | POST | `/review/useredit` | Eink 2.1.2 |
+| 34 | `review` | `review.delete(reviewId)` | POST | `/review/delete` | Eink 2.1.2 |
+| 35 | `readData` | `readData.detail(options?)` | GET | `/readdata/detail` | Web / Mobile |
+| 36 | `discover` | `discover.recommend(options?)` | GET | `/book/recommend` | Eink 2.1.2 |
+| 37 | `discover` | `discover.similar(bookId, options?)` | GET | `/book/detailinfo` | Eink 2.1.2 |
+| 38 | `ai` | `ai.askBook(input)` | POST | `/ai/chatv2` | Web / Mobile |
+| 39 | `ai` | `ai.suggest(input)` | POST | `/ai/chat/suggest` | Web / Mobile |
+| 40 | `import` | `import.book({ name, path/bytes })` | GET + POST | `/cos/getcredential` + `/cos/notify` | Eink 2.1.2 |
+
+## 3. Infrastructure & Base Hosts
 
 | Hostname | Protocol | Role / Target Scope |
 | :--- | :--- | :--- |
@@ -45,7 +88,7 @@
 | `weread.qq.com` | HTTPS | Web views, H5 redirect bridges, and crash logging auth |
 | `mp.weixin.qq.com` | HTTPS | WeChat Official Accounts article resolution and captcha triggers |
 
-## 3. Complete Endpoints Catalog by Domain
+## 4. Complete Eink 2.1.2 Endpoints Catalog by Domain
 
 ### Audio & TTS Engine (26 Endpoints)
 
