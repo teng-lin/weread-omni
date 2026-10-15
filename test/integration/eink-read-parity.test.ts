@@ -95,6 +95,6 @@ describe("eink read coverage", () => {
     expect(PUBLIC_OPERATIONS.notes).toContain("readReviews");
     expect(PUBLIC_OPERATIONS.review).toContain("single");
     expect(PUBLIC_OPERATIONS.search).toContain("suggest");
-    expect(Object.values(PUBLIC_OPERATIONS).flat()).toHaveLength(40);
+    expect(Object.values(PUBLIC_OPERATIONS).flat()).toHaveLength(41);
   });
 });

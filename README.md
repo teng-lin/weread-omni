@@ -4,9 +4,9 @@
 
 [更新日志](CHANGELOG.md) | [安全政策](SECURITY.md) | [API 端点清单](docs/endpoints.md)
 
-weread-omni 是微信读书的全能智能体技能和非官方 SDK。基于微信读书墨水屏的 API 开发，微信扫码即可用，支持 40 项读写操作，远超官方支持的 6 项只读技能。
+weread-omni 是微信读书的全能智能体技能和非官方 SDK。基于微信读书墨水屏的 API 开发，微信扫码即可用，支持 41 项读写操作，远超官方支持的 6 项只读技能。
 
-40 项操作只有一套实现，三个入口共用：`weread-omni` 命令行，每条命令都能输出 JSON；一套类型完整的 TypeScript SDK；还有仓库自带的 agent skill。
+41 项操作只有一套实现，三个入口共用：`weread-omni` 命令行，每条命令都能输出 JSON；一套类型完整的 TypeScript SDK；还有仓库自带的 agent skill。
 
 这是一个非官方项目，与腾讯及微信读书没有隶属关系，也未获得其认可或支持。
 
@@ -90,13 +90,16 @@ npx skills update weread
 weread-omni search books "三体" --json
 weread-omni book info BOOK_ID --json
 weread-omni book chapters BOOK_ID --json
+weread-omni book search BOOK_ID "要标注的原文" --chapter-uid CHAPTER_UID --json
 weread-omni notes bookmarks BOOK_ID --json
 weread-omni read-data detail --mode annually --json
 weread-omni discover similar BOOK_ID --json
 weread-omni ai ask-book BOOK_ID "这本书的核心论点是什么？" --json
 ```
 
-`book chapters` 返回后续命令需要的 `chapterUid`。
+`book chapters` 返回后续命令需要的 `chapterUid`。`book search` 在指定章节精确查找原文，返回可直接用于划线和批注的 `range`、`markText` 和上下文。它复用已有扫码登录，不需要浏览器或本地 EPUB。书城书使用网页搜索坐标；自传 EPUB 使用阅读接口返回的转换后正文坐标。
+
+写入前确认 `complete: true` 并核对上下文；多次命中不能默认选第一项。原始 EPUB 下标和书城另一版本的坐标不能替代本书的范围。实体字符和内联标签也可能使范围长度大于引用文本长度，必须原样保留 `range`。参数、实现依据与验收见[书内搜索与范围定位](docs/book-search-ranges.md)。
 
 ### 书架、划线与点评
 
@@ -106,8 +109,12 @@ weread-omni shelf add BOOK_ID --json
 weread-omni shelf mark-reading BOOK_ID --json
 
 weread-omni notes add-bookmark BOOK_ID CHAPTER_UID "1-20" "要划线的原文" --json
-weread-omni review add BOOK_ID "读完后的想法" --star 80 --json
+weread-omni review add BOOK_ID "读完后的想法" --star 80 --private --json
 ```
+
+批注加 `--private` 即为仅自己可见；编辑已有批注也支持这个参数。写入后用 `review single REVIEW_ID --json` 回读，确认 `review.isPrivate` 为 `1`。不传可见性参数时，CLI 保持原有行为，由服务器决定；`--no-private` 明确取消私密标记，其他可见范围限制不变。Agent skill 默认给个人批注加 `--private`。
+
+SDK 对应参数为 `review.add({ bookId, content, isPrivate: true })` 和 `review.edit(reviewId, content, { isPrivate: true })`，布尔值会转换成接口需要的 `1` 或 `0`。
 
 `shelf pin`、`set-private`、`mark-finished` 和 `mark-reading` 默认会置顶、设为私密、标记读完或标记在读。分别加 `--no-top`、`--no-secret`、`--no-finished` 或 `--no-reading` 可以取消对应状态。点评星级只能填 `20`、`40`、`60`、`80`、`100`，对应一到五星。
 
@@ -209,6 +216,7 @@ weread-omni library verify --json
 | `weread-omni book detail <bookId> [--count <n>]` | 查看书籍配图，以及同作者、同出版社、同版权方、同分类的书单 |
 | `weread-omni book chapters <bookId>` | 查看目录 |
 | `weread-omni book progress <bookId>` | 查看阅读进度 |
+| `weread-omni book search <bookId> <keyword> --chapter-uid <uid>` | 查找章节原文并返回标注范围 |
 | `weread-omni shelf sync [--count <n>] [--offset <n>] [--full]` | 分页查看精简书架；`--full` 返回原始响应 |
 | `weread-omni shelf add <bookId>` | 加入书架 |
 | `weread-omni shelf delete <bookId> [-y, --yes]` | 从书架删除 |
@@ -246,8 +254,8 @@ weread-omni library verify --json
 | `weread-omni notes remove-bookmark <bookmarkId> [-y, --yes]` | 删除自己的划线 |
 | `weread-omni review list <bookId> [--list-type <n>] [--list-mode <n>] [--mine <n>] [--synckey <n>] [--count <n>] [--max-idx <n>]` | 查看点评 |
 | `weread-omni review single <reviewId> [--comments-count <n>] [--comments-direction <n>] [--likes-count <n>] [--likes-direction <n>] [--synckey <n>]` | 查看一条想法或点评 |
-| `weread-omni review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>]` | 发表点评或想法 |
-| `weread-omni review edit <reviewId> <content>` | 修改自己的点评或想法 |
+| `weread-omni review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>] [--private \| --no-private]` | 发表点评或想法 |
+| `weread-omni review edit <reviewId> <content> [--private \| --no-private]` | 修改自己的点评或想法 |
 | `weread-omni review delete <reviewId> [-y, --yes]` | 删除点评 |
 
 ### 统计、推荐、AI 与导入

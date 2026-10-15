@@ -1,6 +1,6 @@
 ---
 name: weread
-description: Search WeRead, inspect books and reading data, manage the bookshelf, public-account subscriptions and reviews, read and write highlights and notes, build private article feeds and archives, ask WeRead AI, or import a personal book through the installed `weread-omni` JSON CLI. Use for requests involving 微信读书, WeChat Reading, a user's WeRead shelf, public accounts, articles, highlights, notes, reviews, reading statistics, recommendations, or book lookup.
+description: Search WeRead, inspect books and reading data, manage the bookshelf, public-account subscriptions and reviews, read, write, edit, and batch-sync highlights and notes, build private article feeds and archives, ask WeRead AI, or import a personal book through the installed `weread-omni` JSON CLI. Use for requests involving 微信读书, WeChat Reading, a user's WeRead shelf, public accounts, articles, highlights, notes, reviews, reading statistics, recommendations, or book lookup.
 ---
 
 # WeRead
@@ -9,6 +9,22 @@ Use the installed CLI as the only interface. Always pass `--json`, parse
 successful stdout as JSON, and summarize the result for the user. On a non-zero
 exit, parse the JSON error from stderr. Never expose credentials or paste raw
 tokens.
+
+## Batch annotations and rate limits
+
+For multiple annotations, an entire chapter, updates from a source document,
+or a resumed run, read [the batch annotation workflow](references/batch-annotations.md)
+before the first write. It defines source completeness, range selection,
+deduplication, durable receipts, recovery, and exhaustive acceptance checks.
+
+Serialize all remote CLI calls for the selected account, including searches,
+reads, writes, and verification. Wait at least **2 seconds after each call
+finishes** before starting the next; use one queue, without parallel workers.
+This is a conservative operating interval validated in a 263-note run, not an
+official server quota; one CLI command can make several HTTP requests.
+On HTTP 429 or an explicit frequency-limit response, stop the write queue and
+follow the batch workflow's recovery table. Never automatically retry a write
+whose outcome is uncertain. Save its intent and response before continuing.
 
 ## Account selection
 
@@ -56,6 +72,7 @@ weread-omni --account "$ACCOUNT" public-accounts read-article 'https://mp.weixin
 weread-omni --account "$ACCOUNT" search books "三体" --json
 weread-omni --account "$ACCOUNT" search books "刘慈欣" --scope 6 --json
 weread-omni --account "$ACCOUNT" book info BOOK_ID --json
+weread-omni --account "$ACCOUNT" book search BOOK_ID "exact original text" --chapter-uid CHAPTER_UID --json
 weread-omni --account "$ACCOUNT" shelf sync --count 20 --json
 weread-omni --account "$ACCOUNT" public-accounts subscriptions --count 20 --json
 weread-omni --account "$ACCOUNT" public-accounts articles MP_WXS_123 --count 20 --json
@@ -153,6 +170,42 @@ imply that the CLI can execute JavaScript challenges or solve CAPTCHAs.
 For a question about a book's substance, prefer `ai ask-book`: the server
 answers it directly, with no need to pull anything down first.
 
+## Locate text before annotating
+
+Use `book search BOOK_ID "original text" --chapter-uid CHAPTER_UID --json`
+to obtain new ranges without browser selection. Resolve `CHAPTER_UID` from
+`book chapters`; the printed chapter number is not its UID. This differs from
+`search books --scope 12`, which searches the catalog rather than one chapter.
+
+The result contains `bookId`, `chapterUid`, `keyword`, `source`, `complete`,
+and `matches[]` with `range`, `start`, `end`, `markText`, and `context`.
+`source=reader-search` uses the web search API's match coordinates.
+For uploaded `CB_` EPUBs, `source=reader-html` locates text in the server's
+converted chapter and adds `chapterSha256`. Both use the selected CLI account;
+no browser, browser cookie extraction, or local EPUB is needed. Reads are fresh.
+
+Before an authorized annotation:
+
+1. Require `complete: true`, the intended book/chapter, and the expected original
+   text and context. Search preserves case and normalizes layout whitespace for
+   uploaded EPUBs. Treat zero matches as not found. With multiple matches, choose
+   only when the user's intended context uniquely identifies one; never choose
+   the first automatically. Narrow the quote or ask for the missing context.
+2. Preserve the returned `range` exactly. HTML tags and entities can make
+   `end - start` differ from `markText.length`. Never calculate a WeRead range
+   from raw local EPUB offsets, another edition, or a fixed offset adjustment.
+3. Read `notes bookmarks BOOK_ID --json` before adding a highlight. Reuse a
+   matching chapter/range/text instead of duplicating it. For a new highlight,
+   pass the returned `range` and `markText` to `notes add-bookmark` and read back.
+4. For the requested thought, pass the same chapter/range and `markText` as
+   `--abstract` to `review add --private`. Save its ID immediately and follow the
+   private read-back checks below. Reuse saved receipts when resuming a task.
+
+If the search is incomplete, authentication fails, a chapter is unavailable,
+or its checksum fails, do not write. Report the specific failure. Uploaded TXT,
+PDF, and unsupported chapter formats do not have a verified HTML locator.
+If the book is replaced or its edition changes, locate the quote again.
+
 ## Account changes
 
 Run a write only when the user explicitly requests that change. State the
@@ -160,10 +213,39 @@ target before acting. Do not infer consent from a prior read.
 
 ```bash
 weread-omni --account "$ACCOUNT" shelf add BOOK_ID --json
-weread-omni --account "$ACCOUNT" review add BOOK_ID "A concise review" --star 100 --json
+weread-omni --account "$ACCOUNT" review add BOOK_ID "A private thought" --private --json
 weread-omni --account "$ACCOUNT" review edit REVIEW_ID "Replacement text" --json
 weread-omni --account "$ACCOUNT" import book /absolute/path/to/book.epub --json
 ```
+
+### Private thoughts and annotations
+
+Use `--private` when creating personal thoughts, annotations, or reading notes,
+unless the user explicitly requests non-private publication. Check
+`review add --help` for this option before the first private write. If the
+installed CLI lacks it, report the missing capability and upgrade; never fall
+back to publishing without the option.
+
+```bash
+weread-omni --account "$ACCOUNT" review add BOOK_ID "My private note" --type 1 --chapter-uid CHAPTER_UID --range "777-778" --abstract "the highlighted text" --private --json
+weread-omni --account "$ACCOUNT" review single REVIEW_ID --json
+```
+
+Read back the returned ID with `review single`. Confirm private creation only
+when `review.isPrivate` is exactly `1`, and verify the content, book, chapter,
+and range. Missing privacy data is unverified, not private. Preserve the ID and
+report a mismatch; retry reads if needed, not the write.
+
+For an edit, read the current content and visibility first. Pass `--private`
+when retaining an existing private note or when the user requests private
+visibility. To make an existing thought private, use
+`review edit REVIEW_ID "EXACT_EXISTING_CONTENT" --private --json`, then read it
+back. Keep the full existing content when only visibility is changing.
+
+`--no-private` explicitly clears the private flag and requires a user request
+for that visibility change. It leaves any other audience restrictions intact.
+Omitting both flags sends no visibility field; creation then uses the server
+default. A book's private-reading setting does not establish a thought's privacy.
 
 `import book` accepts an EPUB, PDF, MOBI, TXT, or AZW3 file the user already
 has; it uploads that file to the user's own WeRead account.
@@ -224,9 +306,10 @@ weread-omni --account "$ACCOUNT" public-accounts unsubscribe MP_WXS_123 --yes --
   them.
 - On `{ "error": ... }`, explain the error without guessing or silently
   switching commands.
-- `errCode` `-2010` and `-2013` are the server's own rate-limit and entitlement
-  decisions. Report them as such rather than retrying in a loop or trying a
-  different command to work around them.
+- Interpret error codes together with the endpoint and returned message.
+  Codes such as `-2010` and `-2013` have endpoint-dependent meanings; retain
+  diagnostics and distinguish authentication, permission, and throttling.
+  Respect the server decision without looping or switching accounts to bypass it.
 - Paginate only when the user needs more results. Continue only when the
   backend returns the required next-page signal (`hasMore=1`, `nextOffset`, or
   the command's documented cursor). If the response omits a completion

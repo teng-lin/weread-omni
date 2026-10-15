@@ -14,7 +14,7 @@ import { readDataModule } from "../../src/api/resources/read-data.js";
 import { reviewModule } from "../../src/api/resources/review.js";
 import { searchModule } from "../../src/api/resources/search.js";
 import { shelfModule } from "../../src/api/resources/shelf.js";
-import type { CosUploader, MobileTransport } from "../../src/api/types.js";
+import type { BookSearchOptions, BookSearchResponse, CosUploader, MobileTransport } from "../../src/api/types.js";
 import { AuthError, TransportError, WeReadApiError } from "../../src/errors.js";
 
 const defaultCosUpload = vi.hoisted(() => vi.fn<CosUploader>());
@@ -46,6 +46,11 @@ class RecordingTransport implements MobileTransport {
   readonly calls: Array<{ method: string; path: string; options: MobileCallOptions }> = [];
   readonly responses: unknown[] = [];
 
+  async searchBook(bookId: string, keyword: string, options: BookSearchOptions): Promise<BookSearchResponse> {
+    this.calls.push({ method: "GET", path: "/web/book/search_v2", options: { signal: options.signal } });
+    return { bookId, keyword, chapterUid: options.chapterUid, complete: true, source: "reader-search", matches: [] };
+  }
+
   async call<T = unknown>(method: string, path: string, options: MobileCallOptions = {}): Promise<MobileResponse<T>> {
     this.calls.push({ method, path, options });
     return { status: 200, headers: new Headers(), body: (this.responses.shift() ?? { ...ANY_ACCEPTED_BODY }) as T };
@@ -59,7 +64,7 @@ afterEach(() => {
 });
 
 describe("public book resources", () => {
-  it("exposes exactly info, detail, chapters, and progress", async () => {
+  it("exposes metadata, chapter search, and progress", async () => {
     const transport = new RecordingTransport();
     transport.responses.push(
       { bookId: "book", title: "Title" },
@@ -82,7 +87,7 @@ describe("public book resources", () => {
     );
     const book = bookModule(transport);
 
-    expect(Object.keys(book).sort()).toEqual(["chapters", "detail", "info", "progress"]);
+    expect(Object.keys(book).sort()).toEqual(["chapters", "detail", "info", "progress", "search"]);
     await expect(book.info("book")).resolves.toMatchObject({ title: "Title" });
     await expect(book.detail("book", { count: 3 })).resolves.toEqual({
       skuImages: { urls: ["https://example.test/sku.jpg"] },
@@ -1265,6 +1270,7 @@ describe("cancellation reaches every public operation", () => {
       },
     ],
     ["book.progress", (t, signal) => bookModule(t).progress("book", { signal })],
+    ["book.search", (t, signal) => bookModule(t).search("book", "quote", { chapterUid: 15, signal })],
     ["shelf.sync", (t, signal) => shelfModule(t).sync({ signal })],
     ["shelf.add", (t, signal) => shelfModule(t).add("book", { signal })],
     ["shelf.delete", (t, signal) => shelfModule(t).delete("book", { signal })],
@@ -1340,7 +1346,7 @@ describe("cancellation reaches every public operation", () => {
       .flatMap(([namespace, operations]) => operations.map((operation) => `${namespace}.${operation}`))
       .sort();
     expect(invocations.map(([name]) => name).sort()).toEqual(registered);
-    expect(registered).toHaveLength(40);
+    expect(registered).toHaveLength(41);
   });
 
   it.each(invocations)("%s passes its signal to every request it makes", async (_name, invoke) => {

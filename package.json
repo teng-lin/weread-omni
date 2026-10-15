@@ -1,7 +1,7 @@
 {
   "name": "weread-omni",
   "version": "0.1.2",
-  "description": "Everything the official WeRead (微信读书 / WeChat Reading) Agent Skill does — plus public accounts, RSS/Atom/JSON feeds, book imports, WeRead AI, and write access to your highlights and shelf. One canonical surface of 40 operations through an agent skill, TypeScript SDK, and CLI.",
+  "description": "Everything the official WeRead (微信读书 / WeChat Reading) Agent Skill does — plus public accounts, RSS/Atom/JSON feeds, book imports, WeRead AI, and write access to your highlights and shelf. One canonical surface of 41 operations through an agent skill, TypeScript SDK, and CLI.",
   "keywords": [
     "weread",
     "微信读书",
@@ -92,6 +92,7 @@
     "commander": "^14.0.3",
     "cos-nodejs-sdk-v5": "^3.0.0",
     "feed": "^6.0.0",
+    "htmlparser2": "^12.0.0",
     "qrcode-terminal": "^0.12.0"
   },
   "overrides": {

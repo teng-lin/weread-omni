@@ -9,6 +9,31 @@ CLI surface is **experimental** and may change in a minor release.
 
 ## [Unreleased]
 
+## [0.1.2-local-range.1] — local extension, not an upstream release
+
+### Added
+
+- `book search BOOK_ID "quote" --chapter-uid UID` and SDK
+  `book.search(bookId, quote, { chapterUid })` return exact annotation ranges,
+  matched text, context, and completeness without browser automation.
+- Catalog books use web search coordinates. Uploaded EPUBs use authenticated
+  server-converted chapter HTML with fragment checksums and source offsets;
+  raw local EPUB offsets are never substituted. HTML parsing handles entities,
+  inline tags, Unicode, and repeated text.
+- The skill checks ambiguous matches and existing highlights before writing,
+  then keeps the established private-note read-back checks.
+
+## [0.1.2-local-private.1] — local extension, not an upstream release
+
+### Added
+
+- Private thoughts and annotations through `review add --private` and
+  `review edit --private`. The SDK accepts optional boolean `isPrivate` in
+  `ReviewAddInput` and the new `ReviewEditOptions`. This is an additive,
+  backward-compatible SDK change; omitted options retain the previous payload.
+- The agent skill defaults personal notes to private and requires read-back
+  confirmation of `review.isPrivate === 1`.
+
 ## [0.1.2]
 
 ### Added

@@ -6,6 +6,7 @@ import type {
   RequestOptions,
   ReviewAddInput,
   ReviewAddResponse,
+  ReviewEditOptions,
   ReviewEditResponse,
   ReviewListOptions,
   ReviewListResponse,
@@ -93,6 +94,7 @@ export function reviewModule(mobile: MobileTransport) {
         content: input.content,
         type: input.type ?? 1,
       };
+      if (input.isPrivate !== undefined) body.isPrivate = input.isPrivate ? 1 : 0;
       if (input.star !== undefined) body.star = input.star;
       if (input.range) body.range = input.range;
       if (input.abstract) body.abstract = input.abstract;
@@ -101,11 +103,13 @@ export function reviewModule(mobile: MobileTransport) {
         .call<ReviewAddResponse>("POST", "/review/add", { body, signal: input.signal })
         .then((response) => response.body);
     },
-    edit(reviewId: string, content: string, options: RequestOptions = {}): Promise<ReviewEditResponse> {
-      assertOperationArguments(OPERATIONS.reviewEdit, { reviewId, content });
+    edit(reviewId: string, content: string, options: ReviewEditOptions = {}): Promise<ReviewEditResponse> {
+      assertOperationArguments(OPERATIONS.reviewEdit, { reviewId, content, isPrivate: options.isPrivate });
+      const body: Record<string, unknown> = { reviewId, content };
+      if (options.isPrivate !== undefined) body.isPrivate = options.isPrivate ? 1 : 0;
       return mobile
         .call<ReviewEditResponse>("POST", "/review/useredit", {
-          body: { reviewId, content },
+          body,
           signal: options.signal,
         })
         .then((response) => response.body);

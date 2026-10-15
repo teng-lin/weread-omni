@@ -31,7 +31,15 @@ describe("public scaffold", () => {
     // The packed surface (files/exports/bin) is the release contract; test/unit/release.test.ts
     // owns it. This test stays scoped to the scaffold identity, dependencies, and build scripts.
     expect(Object.keys(manifest.dependencies).sort()).toEqual(
-      ["@teng-lin/agent-fetch", "@types/node", "commander", "cos-nodejs-sdk-v5", "feed", "qrcode-terminal"].sort(),
+      [
+        "@teng-lin/agent-fetch",
+        "@types/node",
+        "commander",
+        "cos-nodejs-sdk-v5",
+        "feed",
+        "htmlparser2",
+        "qrcode-terminal",
+      ].sort(),
     );
     expect(manifest.scripts.build).toMatch(/^npm run clean && /);
     expect(manifest.scripts.prepare).toBe("npm run build");

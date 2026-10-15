@@ -2,6 +2,29 @@ import type { MobileResponse, MobileTransportCallOptions } from "./mobile.js";
 
 export interface MobileTransport {
   call<T = unknown>(method: string, path: string, options?: MobileTransportCallOptions): Promise<MobileResponse<T>>;
+  searchBook?(bookId: string, keyword: string, options: BookSearchOptions): Promise<BookSearchResponse>;
+}
+
+export interface BookSearchOptions extends RequestOptions {
+  chapterUid: number;
+}
+
+export interface BookTextMatch {
+  range: string;
+  start: number;
+  end: number;
+  markText: string;
+  context: string;
+}
+
+export interface BookSearchResponse {
+  bookId: string;
+  chapterUid: number;
+  keyword: string;
+  source: "reader-search" | "reader-html";
+  complete: boolean;
+  chapterSha256?: string;
+  matches: BookTextMatch[];
 }
 
 /**
@@ -797,7 +820,12 @@ export interface ReviewSingleOptions extends SyncOptions {
 
 export type StarRating = 20 | 40 | 60 | 80 | 100;
 
-export interface ReviewAddInput extends RequestOptions {
+export interface ReviewEditOptions extends RequestOptions {
+  /** true 仅自己可见；false 取消私密标记；省略时不发送可见性参数。 */
+  isPrivate?: boolean;
+}
+
+export interface ReviewAddInput extends ReviewEditOptions {
   bookId: string;
   content: string;
   type?: number;
