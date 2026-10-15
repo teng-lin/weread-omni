@@ -183,12 +183,14 @@ const expectedOptions: Record<(typeof expectedLeaves)[number], string[]> = {
   "review add": [
     "--abstract <text>",
     "--chapter-uid <number>",
+    "--no-private",
+    "--private",
     "--range <range>",
     "--star <number>",
     "--type <number>",
   ],
   "review delete": ["-y, --yes"],
-  "review edit": [],
+  "review edit": ["--no-private", "--private"],
   "review list": [
     "--count <number>",
     "--list-mode <number>",

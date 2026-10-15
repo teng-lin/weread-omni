@@ -797,7 +797,12 @@ export interface ReviewSingleOptions extends SyncOptions {
 
 export type StarRating = 20 | 40 | 60 | 80 | 100;
 
-export interface ReviewAddInput extends RequestOptions {
+export interface ReviewEditOptions extends RequestOptions {
+  /** true 仅自己可见；false 取消私密标记；省略时不发送可见性参数。 */
+  isPrivate?: boolean;
+}
+
+export interface ReviewAddInput extends ReviewEditOptions {
   bookId: string;
   content: string;
   type?: number;

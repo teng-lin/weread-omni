@@ -320,7 +320,11 @@ interface ConfirmCliOptions {
   yes?: boolean;
 }
 
-interface ReviewAddCliOptions {
+interface ReviewEditCliOptions {
+  private?: boolean;
+}
+
+interface ReviewAddCliOptions extends ReviewEditCliOptions {
   star?: StarRating;
   type?: number;
   range?: string;
@@ -998,6 +1002,8 @@ export function registerWriteCommands(program: Command, context: BuiltinCommandC
   review
     .command("add <bookId> <content>")
     .description("Add a review to a book")
+    .option("--private", parameterHelp(OPERATIONS.reviewAdd.parameters.isPrivate))
+    .option("--no-private", "Clear private visibility; other audience restrictions are unchanged")
     .option("--star <number>", parameterHelp(OPERATIONS.reviewAdd.parameters.star), rating)
     .option(
       "--type <number>",
@@ -1011,18 +1017,34 @@ export function registerWriteCommands(program: Command, context: BuiltinCommandC
       parameterHelp(OPERATIONS.reviewAdd.parameters.chapterUid),
       integerFor("chapterUid", OPERATIONS.reviewAdd.parameters.chapterUid),
     )
-    .action((bookId: string, content: string, options: ReviewAddCliOptions, command: Command) =>
-      emit(command, context, context.getClientFor("review.add").review.add({ bookId, content, ...options })),
-    );
+    .action((bookId: string, content: string, options: ReviewAddCliOptions, command: Command) => {
+      const { private: isPrivate, ...reviewOptions } = options;
+      return emit(
+        command,
+        context,
+        context.getClientFor("review.add").review.add({
+          bookId,
+          content,
+          ...reviewOptions,
+          ...(isPrivate !== undefined ? { isPrivate } : {}),
+          ...(context.signal ? { signal: context.signal } : {}),
+        }),
+      );
+    });
   review
     .command("edit <reviewId> <content>")
     .description("Edit one of your reviews or thoughts")
-    .action((reviewId: string, content: string, _options: unknown, command: Command) =>
+    .option("--private", parameterHelp(OPERATIONS.reviewEdit.parameters.isPrivate))
+    .option("--no-private", "Clear private visibility; other audience restrictions are unchanged")
+    .action((reviewId: string, content: string, options: ReviewEditCliOptions, command: Command) =>
       emit(
         command,
         context,
-        context.signal
-          ? context.getClientFor("review.edit").review.edit(reviewId, content, { signal: context.signal })
+        context.signal || options.private !== undefined
+          ? context.getClientFor("review.edit").review.edit(reviewId, content, {
+              ...(options.private !== undefined ? { isPrivate: options.private } : {}),
+              ...(context.signal ? { signal: context.signal } : {}),
+            })
           : context.getClientFor("review.edit").review.edit(reviewId, content),
       ),
     );

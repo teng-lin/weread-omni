@@ -128,6 +128,7 @@ export type {
   ReviewAddResponse,
   ReviewAuthor,
   ReviewDetail,
+  ReviewEditOptions,
   ReviewEditResponse,
   ReviewItem,
   ReviewListOptions,
