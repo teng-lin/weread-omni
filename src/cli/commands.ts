@@ -14,6 +14,7 @@ import {
 import { PUBLIC_OPERATIONS } from "../api/operations.js";
 import type {
   AddBookmarkInput,
+  BookSearchOptions,
   PublicAccountFeedFormat,
   PublicAccountLibrary,
   PublicAccountLibraryMode,
@@ -378,6 +379,23 @@ export function registerReadCommands(program: Command, context: BuiltinCommandCo
     );
 
   const book = resource(program, "book", "Inspect books");
+  book
+    .command("search <bookId> <keyword>")
+    .description("Find exact chapter text with WeRead ranges, without a browser")
+    .requiredOption(
+      "--chapter-uid <number>",
+      parameterHelp(OPERATIONS.bookSearch.parameters.chapterUid),
+      integerFor("chapterUid", OPERATIONS.bookSearch.parameters.chapterUid),
+    )
+    .action((bookId: string, keyword: string, options: BookSearchOptions, command: Command) =>
+      emit(
+        command,
+        context,
+        context
+          .getClientFor("book.search")
+          .book.search(bookId, keyword, { ...options, ...(context.signal ? { signal: context.signal } : {}) }),
+      ),
+    );
   const bookDescriptions = {
     info: "Get a book's metadata",
     detail: "Get a book's images and related catalogs",

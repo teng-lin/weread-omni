@@ -95,6 +95,7 @@ const expectedLeaves = [
   "book detail",
   "book info",
   "book progress",
+  "book search",
   "discover recommend",
   "discover similar",
   "doctor",
@@ -146,6 +147,7 @@ const expectedOptions: Record<(typeof expectedLeaves)[number], string[]> = {
   "book detail": ["--count <number>"],
   "book info": [],
   "book progress": [],
+  "book search": ["--chapter-uid <number>"],
   "discover recommend": ["--count <number>", "--max-idx <number>"],
   "discover similar": ["--count <number>", "--max-idx <number>", "--session-id <id>"],
   doctor: [],
@@ -219,11 +221,11 @@ const expectedOptions: Record<(typeof expectedLeaves)[number], string[]> = {
 };
 
 describe("public CLI topology", () => {
-  it("contains exactly 40 public operation leaves plus the lifecycle and artifact commands", () => {
+  it("contains exactly 41 public operation leaves plus the lifecycle and artifact commands", () => {
     const program = createProgram({ env: enabledGates, getClient: vi.fn() });
 
     expect(leafCommands(program).sort()).toEqual([...expectedLeaves].sort());
-    expect(Object.values(PUBLIC_OPERATIONS).flat()).toHaveLength(40);
+    expect(Object.values(PUBLIC_OPERATIONS).flat()).toHaveLength(41);
   });
 
   it("pins the exact option flags for every leaf and the global options", () => {
@@ -381,6 +383,11 @@ describe("public CLI operation projection", () => {
     },
     { operation: "book.chapters", args: ["book", "chapters", "b"], expected: ["b"] },
     { operation: "book.progress", args: ["book", "progress", "b"], expected: ["b"] },
+    {
+      operation: "book.search",
+      args: ["book", "search", "b", "quote", "--chapter-uid", "15"],
+      expected: ["b", "quote", { chapterUid: 15 }],
+    },
     { operation: "shelf.sync", args: ["shelf", "sync", "--full"], expected: [] },
     { operation: "shelf.add", args: ["shelf", "add", "b"], expected: ["b"] },
     { operation: "shelf.delete", args: ["shelf", "delete", "b", "--yes"], expected: ["b"] },

@@ -14,7 +14,7 @@
 
 ## Entry points
 
-### `weread-omni` — dist/index.d.ts (198 exports)
+### `weread-omni` — dist/index.d.ts (201 exports)
 
 - `ALLOWED_EXT` — const — dist/api/import-guards.d.ts
 - `AccessToken` — interface — dist/auth/token.d.ts
@@ -35,6 +35,9 @@
 - `BookDetailResponse` — interface — dist/api/types.d.ts
 - `BookInfo` — interface — dist/api/types.d.ts
 - `BookProgress` — interface — dist/api/types.d.ts
+- `BookSearchOptions` — interface — dist/api/types.d.ts
+- `BookSearchResponse` — interface — dist/api/types.d.ts
+- `BookTextMatch` — interface — dist/api/types.d.ts
 - `BookValidationError` — class — dist/api/import-guards.d.ts
 - `Bookmark` — interface — dist/api/types.d.ts
 - `BookmarkListResponse` — interface — dist/api/types.d.ts
@@ -530,6 +533,41 @@ interface BookProgress {
 }
 ```
 
+### `BookSearchOptions` — dist/api/types.d.ts
+
+```ts
+interface BookSearchOptions extends RequestOptions {
+  chapterUid: number
+  signal?: AbortSignal
+}
+```
+
+### `BookSearchResponse` — dist/api/types.d.ts
+
+```ts
+interface BookSearchResponse {
+  bookId: string
+  chapterSha256?: string
+  chapterUid: number
+  complete: boolean
+  keyword: string
+  matches: BookTextMatch[]
+  source: "reader-html" | "reader-search"
+}
+```
+
+### `BookTextMatch` — dist/api/types.d.ts
+
+```ts
+interface BookTextMatch {
+  context: string
+  end: number
+  markText: string
+  range: string
+  start: number
+}
+```
+
 ### `BookValidationError` — dist/api/import-guards.d.ts
 
 ```ts
@@ -581,12 +619,13 @@ const CLIENT_PLUGIN_API_VERSION: 1
 ### `CanonicalBook` — dist/api/client.d.ts
 
 ```ts
-type CanonicalBook = { info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>; detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>; chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>; progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>; }
+type CanonicalBook = { search: (bookId: string, keyword: string, options: BookSearchOptions) => Promise<BookSearchResponse>; info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>; detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>; chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>; progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>; }
 // resolves to:
 //   chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>
 //   detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>
 //   info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>
 //   progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>
+//   search: (bookId: string, keyword: string, options: BookSearchOptions) => Promise<BookSearchResponse>
 ```
 
 ### `CanonicalClient` — dist/api/client.d.ts
@@ -594,7 +633,7 @@ type CanonicalBook = { info: (bookId: string, options?: RequestOptions | undefin
 ```ts
 interface CanonicalClient {
   readonly ai: { askBook(input: AskBookInput): Promise<AskBookResult>; suggest(input: SuggestInput): Promise<SuggestResponse>; }
-  readonly book: { info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>; detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>; chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>; progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>; }
+  readonly book: { search: (bookId: string, keyword: string, options: BookSearchOptions) => Promise<BookSearchResponse>; info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>; detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>; chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>; progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>; }
   readonly discover: { recommend(options?: RecommendOptions | undefined): Promise<RecommendResponse>; similar(bookId: string, options?: SimilarOptions | undefined): Promise<SimilarResponse>; }
   readonly import: { book(input: ImportBookInput): Promise<ImportBookResult>; }
   readonly notes: { notebooks(options?: NotebooksOptions | undefined): Promise<NotebooksResponse>; recent(options?: RecentNotesOptions | undefined): Promise<RecentNotesResponse>; bookmarks(bookId: string, options?: SyncOptions | undefined): Promise<BookmarkListResponse>; mine(bookId: string, options?: MineNotesOptions | undefined): Promise<MineReviewListResponse>; best(bookId: string, options?: BestNotesOptions | undefined): Promise<BestBookmarksResponse>; readReviews(bookId: string, chapterUid: number, reviews: ReadReviewQuery[], options?: RequestOptions | undefined): Promise<ReadReviewsResponse>; underlines(bookId: string, chapterUid: number, options?: SyncOptions | undefined): Promise<UnderlinesResponse>; addBookmark(input: AddBookmarkInput): Promise<MutationSuccessResponse>; updateBookmark(input: UpdateBookmarkInput): Promise<MutationSuccessResponse>; removeBookmark(bookmarkId: string, options?: RequestOptions | undefined): Promise<MutationSuccessResponse>; }
@@ -692,10 +731,10 @@ interface CliIdentity {
 ### `CliOperationsClient` — dist/cli/commands.d.ts
 
 ```ts
-type CliOperationsClient = { readonly ai?: { readonly askBook?: ((input: AskBookInput) => Promise<AskBookResult>) | undefined; readonly suggest?: ((input: SuggestInput) => Promise<SuggestResponse>) | undefined; } | undefined; readonly book?: { readonly chapters?: ((bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>) | undefined; readonly detail?: ((bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>) | undefined; readonly info?: ((bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>) | undefined; readonly progress?: ((bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>) | undefined; } | undefined; readonly discover?: { readonly recommend?: ((options?: RecommendOptions | undefined) => Promise<RecommendResponse>) | undefined; readonly similar?: ((bookId: string, options?: SimilarOptions | undefined) => Promise<SimilarResponse>) | undefined; } | undefined; readonly import?: { readonly book?: ((input: ImportBookInput) => Promise<ImportBookResult>) | undefined; } | undefined; readonly notes?: { readonly addBookmark?: ((input: AddBookmarkInput) => Promise<MutationSuccessResponse>) | undefined; readonly best?: ((bookId: string, options?: BestNotesOptions | undefined) => Promise<BestBookmarksResponse>) | undefined; readonly bookmarks?: ((bookId: string, options?: SyncOptions | undefined) => Promise<BookmarkListResponse>) | undefined; readonly mine?: ((bookId: string, options?: MineNotesOptions | undefined) => Promise<MineReviewListResponse>) | undefined; readonly notebooks?: ((options?: NotebooksOptions | undefined) => Promise<NotebooksResponse>) | undefined; readonly readReviews?: ((bookId: string, chapterUid: number, reviews: ReadReviewQuery[], options?: RequestOptions | undefined) => Promise<ReadReviewsResponse>) | undefined; readonly recent?: ((options?: RecentNotesOptions | undefined) => Promise<RecentNotesResponse>) | undefined; readonly removeBookmark?: ((bookmarkId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly underlines?: ((bookId: string, chapterUid: number, options?: SyncOptions | undefined) => Promise<UnderlinesResponse>) | undefined; readonly updateBookmark?: ((input: UpdateBookmarkInput) => Promise<MutationSuccessResponse>) | undefined; } | undefined; readonly publicAccounts?: { readonly articles?: ((accountId: string, options?: PublicAccountArticlesOptions | undefined) => Promise<PublicAccountArticlesPage>) | undefined; readonly paidContent?: ((docUrl: string, options?: RequestOptions | undefined) => Promise<PaidArticleResponse>) | undefined; readonly resolveArticle?: ((docUrl: string, options?: RequestOptions | undefined) => Promise<PublicAccountArticleResolution>) | undefined; readonly subscribe?: ((accountId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly subscriptions?: ((options?: PublicAccountSubscriptionsOptions | undefined) => Promise<PublicAccountSubscriptionsPage>) | undefined; readonly unsubscribe?: ((accountId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; } | undefined; readonly readData?: { readonly detail?: ((options?: ReadDataOptions | undefined) => Promise<ReadDataResponse>) | undefined; } | undefined; readonly review?: { readonly add?: ((input: ReviewAddInput) => Promise<ReviewAddResponse>) | undefined; readonly delete?: ((reviewId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly edit?: ((reviewId: string, content: string, options?: ReviewEditOptions | undefined) => Promise<ReviewEditResponse>) | undefined; readonly list?: ((bookId: string, options?: ReviewListOptions | undefined) => Promise<ReviewListResponse>) | undefined; readonly single?: ((reviewId: string, options?: ReviewSingleOptions | undefined) => Promise<ReviewSingleResponse>) | undefined; } | undefined; readonly search?: { readonly books?: ((keyword: string, options?: SearchOptions | undefined) => Promise<SearchResponse>) | undefined; readonly suggest?: ((keyword: string, options?: SearchSuggestOptions | undefined) => Promise<SearchSuggestResponse>) | undefined; } | undefined; readonly shelf?: { readonly add?: ((bookId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly delete?: ((bookId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly markFinished?: ((bookId: string, on?: boolean | undefined, options?: RequestOptions | undefined) => Promise<MarkFinishedResponse>) | undefined; readonly markReading?: ((bookId: string, on?: boolean | undefined, options?: RequestOptions | undefined) => Promise<MarkFinishedResponse>) | undefined; readonly pin?: ((bookId: string, top?: boolean | undefined, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly setPrivate?: ((bookId: string, on?: boolean | undefined, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly sync?: ((options?: RequestOptions | undefined) => Promise<ShelfSyncResponse>) | undefined; } | undefined; }
+type CliOperationsClient = { readonly ai?: { readonly askBook?: ((input: AskBookInput) => Promise<AskBookResult>) | undefined; readonly suggest?: ((input: SuggestInput) => Promise<SuggestResponse>) | undefined; } | undefined; readonly book?: { readonly chapters?: ((bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>) | undefined; readonly detail?: ((bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>) | undefined; readonly info?: ((bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>) | undefined; readonly progress?: ((bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>) | undefined; readonly search?: ((bookId: string, keyword: string, options: BookSearchOptions) => Promise<BookSearchResponse>) | undefined; } | undefined; readonly discover?: { readonly recommend?: ((options?: RecommendOptions | undefined) => Promise<RecommendResponse>) | undefined; readonly similar?: ((bookId: string, options?: SimilarOptions | undefined) => Promise<SimilarResponse>) | undefined; } | undefined; readonly import?: { readonly book?: ((input: ImportBookInput) => Promise<ImportBookResult>) | undefined; } | undefined; readonly notes?: { readonly addBookmark?: ((input: AddBookmarkInput) => Promise<MutationSuccessResponse>) | undefined; readonly best?: ((bookId: string, options?: BestNotesOptions | undefined) => Promise<BestBookmarksResponse>) | undefined; readonly bookmarks?: ((bookId: string, options?: SyncOptions | undefined) => Promise<BookmarkListResponse>) | undefined; readonly mine?: ((bookId: string, options?: MineNotesOptions | undefined) => Promise<MineReviewListResponse>) | undefined; readonly notebooks?: ((options?: NotebooksOptions | undefined) => Promise<NotebooksResponse>) | undefined; readonly readReviews?: ((bookId: string, chapterUid: number, reviews: ReadReviewQuery[], options?: RequestOptions | undefined) => Promise<ReadReviewsResponse>) | undefined; readonly recent?: ((options?: RecentNotesOptions | undefined) => Promise<RecentNotesResponse>) | undefined; readonly removeBookmark?: ((bookmarkId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly underlines?: ((bookId: string, chapterUid: number, options?: SyncOptions | undefined) => Promise<UnderlinesResponse>) | undefined; readonly updateBookmark?: ((input: UpdateBookmarkInput) => Promise<MutationSuccessResponse>) | undefined; } | undefined; readonly publicAccounts?: { readonly articles?: ((accountId: string, options?: PublicAccountArticlesOptions | undefined) => Promise<PublicAccountArticlesPage>) | undefined; readonly paidContent?: ((docUrl: string, options?: RequestOptions | undefined) => Promise<PaidArticleResponse>) | undefined; readonly resolveArticle?: ((docUrl: string, options?: RequestOptions | undefined) => Promise<PublicAccountArticleResolution>) | undefined; readonly subscribe?: ((accountId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly subscriptions?: ((options?: PublicAccountSubscriptionsOptions | undefined) => Promise<PublicAccountSubscriptionsPage>) | undefined; readonly unsubscribe?: ((accountId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; } | undefined; readonly readData?: { readonly detail?: ((options?: ReadDataOptions | undefined) => Promise<ReadDataResponse>) | undefined; } | undefined; readonly review?: { readonly add?: ((input: ReviewAddInput) => Promise<ReviewAddResponse>) | undefined; readonly delete?: ((reviewId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly edit?: ((reviewId: string, content: string, options?: ReviewEditOptions | undefined) => Promise<ReviewEditResponse>) | undefined; readonly list?: ((bookId: string, options?: ReviewListOptions | undefined) => Promise<ReviewListResponse>) | undefined; readonly single?: ((reviewId: string, options?: ReviewSingleOptions | undefined) => Promise<ReviewSingleResponse>) | undefined; } | undefined; readonly search?: { readonly books?: ((keyword: string, options?: SearchOptions | undefined) => Promise<SearchResponse>) | undefined; readonly suggest?: ((keyword: string, options?: SearchSuggestOptions | undefined) => Promise<SearchSuggestResponse>) | undefined; } | undefined; readonly shelf?: { readonly add?: ((bookId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly delete?: ((bookId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly markFinished?: ((bookId: string, on?: boolean | undefined, options?: RequestOptions | undefined) => Promise<MarkFinishedResponse>) | undefined; readonly markReading?: ((bookId: string, on?: boolean | undefined, options?: RequestOptions | undefined) => Promise<MarkFinishedResponse>) | undefined; readonly pin?: ((bookId: string, top?: boolean | undefined, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly setPrivate?: ((bookId: string, on?: boolean | undefined, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly sync?: ((options?: RequestOptions | undefined) => Promise<ShelfSyncResponse>) | undefined; } | undefined; }
 // resolves to:
 //   ai?: { readonly askBook?: ((input: AskBookInput) => Promise<AskBookResult>) | undefined; readonly suggest?: ((input: SuggestInput) => Promise<SuggestResponse>) | undefined; }
-//   book?: { readonly chapters?: ((bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>) | undefined; readonly detail?: ((bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>) | undefined; readonly info?: ((bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>) | undefined; readonly progress?: ((bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>) | undefined; }
+//   book?: { readonly chapters?: ((bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>) | undefined; readonly detail?: ((bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>) | undefined; readonly info?: ((bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>) | undefined; readonly progress?: ((bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>) | undefined; readonly search?: ((bookId: string, keyword: string, options: BookSearchOptions) => Promise<BookSearchResponse>) | undefined; }
 //   discover?: { readonly recommend?: ((options?: RecommendOptions | undefined) => Promise<RecommendResponse>) | undefined; readonly similar?: ((bookId: string, options?: SimilarOptions | undefined) => Promise<SimilarResponse>) | undefined; }
 //   import?: { readonly book?: ((input: ImportBookInput) => Promise<ImportBookResult>) | undefined; }
 //   notes?: { readonly addBookmark?: ((input: AddBookmarkInput) => Promise<MutationSuccessResponse>) | undefined; readonly best?: ((bookId: string, options?: BestNotesOptions | undefined) => Promise<BestBookmarksResponse>) | undefined; readonly bookmarks?: ((bookId: string, options?: SyncOptions | undefined) => Promise<BookmarkListResponse>) | undefined; readonly mine?: ((bookId: string, options?: MineNotesOptions | undefined) => Promise<MineReviewListResponse>) | undefined; readonly notebooks?: ((options?: NotebooksOptions | undefined) => Promise<NotebooksResponse>) | undefined; readonly readReviews?: ((bookId: string, chapterUid: number, reviews: ReadReviewQuery[], options?: RequestOptions | undefined) => Promise<ReadReviewsResponse>) | undefined; readonly recent?: ((options?: RecentNotesOptions | undefined) => Promise<RecentNotesResponse>) | undefined; readonly removeBookmark?: ((bookmarkId: string, options?: RequestOptions | undefined) => Promise<MutationSuccessResponse>) | undefined; readonly underlines?: ((bookId: string, chapterUid: number, options?: SyncOptions | undefined) => Promise<UnderlinesResponse>) | undefined; readonly updateBookmark?: ((input: UpdateBookmarkInput) => Promise<MutationSuccessResponse>) | undefined; }
@@ -1207,7 +1246,7 @@ class MobileApiClient {
   new (options?: MobileApiClientOptions): MobileApiClient
   #private
   readonly ai: { askBook(input: AskBookInput): Promise<AskBookResult>; suggest(input: SuggestInput): Promise<SuggestResponse>; }
-  readonly book: { info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>; detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>; chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>; progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>; }
+  readonly book: { search: (bookId: string, keyword: string, options: BookSearchOptions) => Promise<BookSearchResponse>; info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>; detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>; chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>; progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>; }
   readonly discover: { recommend(options?: RecommendOptions | undefined): Promise<RecommendResponse>; similar(bookId: string, options?: SimilarOptions | undefined): Promise<SimilarResponse>; }
   readonly import: { book(input: ImportBookInput): Promise<ImportBookResult>; }
   login: (options?: ClientLoginOptions | undefined) => Promise<Credentials>
@@ -1257,6 +1296,7 @@ class MobileClient {
   new (options: MobileClientOptions): MobileClient
   call: <T = unknown>(method: string, path: string, options?: MobileCallOptions | undefined) => Promise<MobileResponse<T>>
   callRaw: (method: string, path: string, options?: RawMobileCallOptions | undefined) => Promise<MobileResponse<Uint8Array<ArrayBufferLike>>>
+  searchBook: (bookId: string, keyword: string, options: BookSearchOptions) => Promise<BookSearchResponse>
   vid: (signal?: AbortSignal | undefined) => Promise<string>
   // nominal: not assignable from a structurally identical object
 }
@@ -1384,10 +1424,10 @@ interface OutputWriter {
 ### `PUBLIC_OPERATIONS` — dist/api/operations.d.ts
 
 ```ts
-const PUBLIC_OPERATIONS: { readonly search: readonly ["books", "suggest"]; readonly book: readonly ["info", "detail", "chapters", "progress"]; readonly shelf: readonly ["sync", "add", "delete", "pin", "setPrivate", "markFinished", "markReading"]; readonly publicAccounts: readonly ["subscriptions", "articles", "resolveArticle", "paidContent", "subscribe", "unsubscribe"]; readonly notes: readonly ["notebooks", "recent", "bookmarks", "mine", "best", "readReviews", "underlines", "addBookmark", "updateBookmark", "removeBookmark"]; readonly review: readonly ["list", "single", "add", "edit", "delete"]; readonly readData: readonly ["detail"]; readonly discover: readonly ["recommend", "similar"]; readonly ai: readonly ["askBook", "suggest"]; readonly import: readonly ["book"]; }
+const PUBLIC_OPERATIONS: { readonly search: readonly ["books", "suggest"]; readonly book: readonly ["info", "detail", "chapters", "progress", "search"]; readonly shelf: readonly ["sync", "add", "delete", "pin", "setPrivate", "markFinished", "markReading"]; readonly publicAccounts: readonly ["subscriptions", "articles", "resolveArticle", "paidContent", "subscribe", "unsubscribe"]; readonly notes: readonly ["notebooks", "recent", "bookmarks", "mine", "best", "readReviews", "underlines", "addBookmark", "updateBookmark", "removeBookmark"]; readonly review: readonly ["list", "single", "add", "edit", "delete"]; readonly readData: readonly ["detail"]; readonly discover: readonly ["recommend", "similar"]; readonly ai: readonly ["askBook", "suggest"]; readonly import: readonly ["book"]; }
 // resolves to:
 //   readonly ai: readonly ["askBook", "suggest"]
-//   readonly book: readonly ["info", "detail", "chapters", "progress"]
+//   readonly book: readonly ["info", "detail", "chapters", "progress", "search"]
 //   readonly discover: readonly ["recommend", "similar"]
 //   readonly import: readonly ["book"]
 //   readonly notes: readonly ["notebooks", "recent", "bookmarks", "mine", "best", "readReviews", "underlines", "addBookmark", "updateBookmark", "removeBookmark"]
@@ -2627,7 +2667,7 @@ class WeReadApiError extends WeReadError {
 class WeReadClient {
   new (__0: WeReadClientOptions): WeReadClient
   readonly ai: { askBook(input: AskBookInput): Promise<AskBookResult>; suggest(input: SuggestInput): Promise<SuggestResponse>; }
-  readonly book: { info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>; detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>; chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>; progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>; }
+  readonly book: { search: (bookId: string, keyword: string, options: BookSearchOptions) => Promise<BookSearchResponse>; info: (bookId: string, options?: RequestOptions | undefined) => Promise<BookInfo>; detail: (bookId: string, options?: BookDetailOptions | undefined) => Promise<BookDetailResponse>; chapters: (bookId: string, options?: RequestOptions | undefined) => Promise<ChapterInfoResponse>; progress: (bookId: string, options?: RequestOptions | undefined) => Promise<BookProgress>; }
   readonly discover: { recommend(options?: RecommendOptions | undefined): Promise<RecommendResponse>; similar(bookId: string, options?: SimilarOptions | undefined): Promise<SimilarResponse>; }
   readonly import: { book(input: ImportBookInput): Promise<ImportBookResult>; }
   readonly notes: { notebooks(options?: NotebooksOptions | undefined): Promise<NotebooksResponse>; recent(options?: RecentNotesOptions | undefined): Promise<RecentNotesResponse>; bookmarks(bookId: string, options?: SyncOptions | undefined): Promise<BookmarkListResponse>; mine(bookId: string, options?: MineNotesOptions | undefined): Promise<MineReviewListResponse>; best(bookId: string, options?: BestNotesOptions | undefined): Promise<BestBookmarksResponse>; readReviews(bookId: string, chapterUid: number, reviews: ReadReviewQuery[], options?: RequestOptions | undefined): Promise<ReadReviewsResponse>; underlines(bookId: string, chapterUid: number, options?: SyncOptions | undefined): Promise<UnderlinesResponse>; addBookmark(input: AddBookmarkInput): Promise<MutationSuccessResponse>; updateBookmark(input: UpdateBookmarkInput): Promise<MutationSuccessResponse>; removeBookmark(bookmarkId: string, options?: RequestOptions | undefined): Promise<MutationSuccessResponse>; }

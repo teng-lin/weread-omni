@@ -2,6 +2,29 @@ import type { MobileResponse, MobileTransportCallOptions } from "./mobile.js";
 
 export interface MobileTransport {
   call<T = unknown>(method: string, path: string, options?: MobileTransportCallOptions): Promise<MobileResponse<T>>;
+  searchBook?(bookId: string, keyword: string, options: BookSearchOptions): Promise<BookSearchResponse>;
+}
+
+export interface BookSearchOptions extends RequestOptions {
+  chapterUid: number;
+}
+
+export interface BookTextMatch {
+  range: string;
+  start: number;
+  end: number;
+  markText: string;
+  context: string;
+}
+
+export interface BookSearchResponse {
+  bookId: string;
+  chapterUid: number;
+  keyword: string;
+  source: "reader-search" | "reader-html";
+  complete: boolean;
+  chapterSha256?: string;
+  matches: BookTextMatch[];
 }
 
 /**

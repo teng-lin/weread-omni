@@ -86,7 +86,7 @@ void bookInfo.titel;
 void readDataBody.totalReadTimes;
 
 export type DirectResourceAssertions = [
-  Expect<Equal<keyof typeof book, "info" | "detail" | "chapters" | "progress">>,
+  Expect<Equal<keyof typeof book, "info" | "detail" | "chapters" | "progress" | "search">>,
   Expect<Equal<Result<typeof search.books>, SearchResponse>>,
   Expect<Equal<Result<typeof search.suggest>, SearchSuggestResponse>>,
   Expect<Equal<Result<typeof book.info>, BookInfo>>,

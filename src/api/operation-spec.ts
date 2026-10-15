@@ -229,6 +229,17 @@ export const OPERATIONS = {
     parameters: { bookId: bookId() },
     required: ["bookId"],
   }),
+  bookSearch: operation({
+    resource: "book",
+    action: "search",
+    summary: "Find exact text in a chapter and return verified WeRead ranges.",
+    parameters: {
+      bookId: bookId(),
+      keyword: text("Exact original text to locate, with case preserved."),
+      chapterUid: whole("Chapter identifier from book.chapters; not the printed chapter number.", { minimum: 1 }),
+    },
+    required: ["bookId", "keyword", "chapterUid"],
+  }),
   bookDetail: operation({
     resource: "book",
     action: "detail",
