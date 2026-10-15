@@ -160,10 +160,39 @@ target before acting. Do not infer consent from a prior read.
 
 ```bash
 weread-omni --account "$ACCOUNT" shelf add BOOK_ID --json
-weread-omni --account "$ACCOUNT" review add BOOK_ID "A concise review" --star 100 --json
+weread-omni --account "$ACCOUNT" review add BOOK_ID "A private thought" --private --json
 weread-omni --account "$ACCOUNT" review edit REVIEW_ID "Replacement text" --json
 weread-omni --account "$ACCOUNT" import book /absolute/path/to/book.epub --json
 ```
+
+### Private thoughts and annotations
+
+Use `--private` when creating personal thoughts, annotations, or reading notes,
+unless the user explicitly requests non-private publication. Check
+`review add --help` for this option before the first private write. If the
+installed CLI lacks it, report the missing capability and upgrade; never fall
+back to publishing without the option.
+
+```bash
+weread-omni --account "$ACCOUNT" review add BOOK_ID "My private note" --type 1 --chapter-uid CHAPTER_UID --range "777-778" --abstract "the highlighted text" --private --json
+weread-omni --account "$ACCOUNT" review single REVIEW_ID --json
+```
+
+Read back the returned ID with `review single`. Confirm private creation only
+when `review.isPrivate` is exactly `1`, and verify the content, book, chapter,
+and range. Missing privacy data is unverified, not private. Preserve the ID and
+report a mismatch; retry reads if needed, not the write.
+
+For an edit, read the current content and visibility first. Pass `--private`
+when retaining an existing private note or when the user requests private
+visibility. To make an existing thought private, use
+`review edit REVIEW_ID "EXACT_EXISTING_CONTENT" --private --json`, then read it
+back. Keep the full existing content when only visibility is changing.
+
+`--no-private` explicitly clears the private flag and requires a user request
+for that visibility change. It leaves any other audience restrictions intact.
+Omitting both flags sends no visibility field; creation then uses the server
+default. A book's private-reading setting does not establish a thought's privacy.
 
 `import book` accepts an EPUB, PDF, MOBI, TXT, or AZW3 file the user already
 has; it uploads that file to the user's own WeRead account.

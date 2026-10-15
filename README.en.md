@@ -115,8 +115,19 @@ weread-omni shelf add BOOK_ID --json
 weread-omni shelf mark-reading BOOK_ID --json
 
 weread-omni notes add-bookmark BOOK_ID CHAPTER_UID "1-20" "text to highlight" --json
-weread-omni review add BOOK_ID "My thoughts after reading" --star 80 --json
+weread-omni review add BOOK_ID "My thoughts after reading" --star 80 --private --json
 ```
+
+Pass `--private` when creating or editing a thought to make it visible only to
+yourself. Read it back with `review single REVIEW_ID --json` and require
+`review.isPrivate === 1`. Without either visibility flag, the CLI sends no
+visibility field and preserves its previous behavior. `--no-private` explicitly
+clears the private flag; other audience restrictions remain unchanged. The agent
+skill uses `--private` by default for personal annotations.
+
+The SDK accepts `review.add({ bookId, content, isPrivate: true })` and
+`review.edit(reviewId, content, { isPrivate: true })`. Boolean values map to the
+protocol values `1` and `0`.
 
 `shelf pin`, `set-private`, `mark-finished`, and `mark-reading` perform the positive action by default. Use `--no-top`, `--no-secret`, `--no-finished`, or `--no-reading` to reverse it. Review ratings must be one of `20`, `40`, `60`, `80`, or `100`.
 
@@ -259,8 +270,8 @@ This is a command index. All commands accept the global options below; each subc
 | `weread-omni notes remove-bookmark <bookmarkId> [-y, --yes]` | Remove one of your highlights |
 | `weread-omni review list <bookId> [--list-type <n>] [--list-mode <n>] [--mine <n>] [--synckey <n>] [--count <n>] [--max-idx <n>]` | List reviews |
 | `weread-omni review single <reviewId> [--comments-count <n>] [--comments-direction <n>] [--likes-count <n>] [--likes-direction <n>] [--synckey <n>]` | Get one thought or review |
-| `weread-omni review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>]` | Post a review or thought |
-| `weread-omni review edit <reviewId> <content>` | Edit one of your reviews or thoughts |
+| `weread-omni review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>] [--private \| --no-private]` | Post a review or thought |
+| `weread-omni review edit <reviewId> <content> [--private \| --no-private]` | Edit one of your reviews or thoughts |
 | `weread-omni review delete <reviewId> [-y, --yes]` | Delete a review |
 
 ### Statistics, discovery, AI, and import

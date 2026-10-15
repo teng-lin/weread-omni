@@ -9,6 +9,17 @@ CLI surface is **experimental** and may change in a minor release.
 
 ## [Unreleased]
 
+## [0.1.2-local-private.1] — local extension, not an upstream release
+
+### Added
+
+- Private thoughts and annotations through `review add --private` and
+  `review edit --private`. The SDK accepts optional boolean `isPrivate` in
+  `ReviewAddInput` and the new `ReviewEditOptions`. This is an additive,
+  backward-compatible SDK change; omitted options retain the previous payload.
+- The agent skill defaults personal notes to private and requires read-back
+  confirmation of `review.isPrivate === 1`.
+
 ## [0.1.2]
 
 ### Added

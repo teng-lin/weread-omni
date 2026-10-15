@@ -106,8 +106,12 @@ weread-omni shelf add BOOK_ID --json
 weread-omni shelf mark-reading BOOK_ID --json
 
 weread-omni notes add-bookmark BOOK_ID CHAPTER_UID "1-20" "要划线的原文" --json
-weread-omni review add BOOK_ID "读完后的想法" --star 80 --json
+weread-omni review add BOOK_ID "读完后的想法" --star 80 --private --json
 ```
+
+批注加 `--private` 即为仅自己可见；编辑已有批注也支持这个参数。写入后用 `review single REVIEW_ID --json` 回读，确认 `review.isPrivate` 为 `1`。不传可见性参数时，CLI 保持原有行为，由服务器决定；`--no-private` 明确取消私密标记，其他可见范围限制不变。Agent skill 默认给个人批注加 `--private`。
+
+SDK 对应参数为 `review.add({ bookId, content, isPrivate: true })` 和 `review.edit(reviewId, content, { isPrivate: true })`，布尔值会转换成接口需要的 `1` 或 `0`。
 
 `shelf pin`、`set-private`、`mark-finished` 和 `mark-reading` 默认会置顶、设为私密、标记读完或标记在读。分别加 `--no-top`、`--no-secret`、`--no-finished` 或 `--no-reading` 可以取消对应状态。点评星级只能填 `20`、`40`、`60`、`80`、`100`，对应一到五星。
 
@@ -246,8 +250,8 @@ weread-omni library verify --json
 | `weread-omni notes remove-bookmark <bookmarkId> [-y, --yes]` | 删除自己的划线 |
 | `weread-omni review list <bookId> [--list-type <n>] [--list-mode <n>] [--mine <n>] [--synckey <n>] [--count <n>] [--max-idx <n>]` | 查看点评 |
 | `weread-omni review single <reviewId> [--comments-count <n>] [--comments-direction <n>] [--likes-count <n>] [--likes-direction <n>] [--synckey <n>]` | 查看一条想法或点评 |
-| `weread-omni review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>]` | 发表点评或想法 |
-| `weread-omni review edit <reviewId> <content>` | 修改自己的点评或想法 |
+| `weread-omni review add <bookId> <content> [--star <n>] [--type <n>] [--range <range>] [--abstract <text>] [--chapter-uid <n>] [--private \| --no-private]` | 发表点评或想法 |
+| `weread-omni review edit <reviewId> <content> [--private \| --no-private]` | 修改自己的点评或想法 |
 | `weread-omni review delete <reviewId> [-y, --yes]` | 删除点评 |
 
 ### 统计、推荐、AI 与导入
