@@ -1,6 +1,6 @@
 ---
 name: weread
-description: Search WeRead, inspect books and reading data, manage the bookshelf, public-account subscriptions and reviews, read and write highlights and notes, build private article feeds and archives, ask WeRead AI, or import a personal book through the installed `weread-omni` JSON CLI. Use for requests involving 微信读书, WeChat Reading, a user's WeRead shelf, public accounts, articles, highlights, notes, reviews, reading statistics, recommendations, or book lookup.
+description: Search WeRead, inspect books and reading data, manage the bookshelf, public-account subscriptions and reviews, read, write, edit, and batch-sync highlights and notes, build private article feeds and archives, ask WeRead AI, or import a personal book through the installed `weread-omni` JSON CLI. Use for requests involving 微信读书, WeChat Reading, a user's WeRead shelf, public accounts, articles, highlights, notes, reviews, reading statistics, recommendations, or book lookup.
 ---
 
 # WeRead
@@ -9,6 +9,22 @@ Use the installed CLI as the only interface. Always pass `--json`, parse
 successful stdout as JSON, and summarize the result for the user. On a non-zero
 exit, parse the JSON error from stderr. Never expose credentials or paste raw
 tokens.
+
+## Batch annotations and rate limits
+
+For multiple annotations, an entire chapter, updates from a source document,
+or a resumed run, read [the batch annotation workflow](references/batch-annotations.md)
+before the first write. It defines source completeness, range selection,
+deduplication, durable receipts, recovery, and exhaustive acceptance checks.
+
+Serialize all remote CLI calls for the selected account, including searches,
+reads, writes, and verification. Wait at least **2 seconds after each call
+finishes** before starting the next; use one queue, without parallel workers.
+This is a conservative operating interval validated in a 263-note run, not an
+official server quota; one CLI command can make several HTTP requests.
+On HTTP 429 or an explicit frequency-limit response, stop the write queue and
+follow the batch workflow's recovery table. Never automatically retry a write
+whose outcome is uncertain. Save its intent and response before continuing.
 
 ## Account selection
 
@@ -290,9 +306,10 @@ weread-omni --account "$ACCOUNT" public-accounts unsubscribe MP_WXS_123 --yes --
   them.
 - On `{ "error": ... }`, explain the error without guessing or silently
   switching commands.
-- `errCode` `-2010` and `-2013` are the server's own rate-limit and entitlement
-  decisions. Report them as such rather than retrying in a loop or trying a
-  different command to work around them.
+- Interpret error codes together with the endpoint and returned message.
+  Codes such as `-2010` and `-2013` have endpoint-dependent meanings; retain
+  diagnostics and distinguish authentication, permission, and throttling.
+  Respect the server decision without looping or switching accounts to bypass it.
 - Paginate only when the user needs more results. Continue only when the
   backend returns the required next-page signal (`hasMore=1`, `nextOffset`, or
   the command's documented cursor). If the response omits a completion
