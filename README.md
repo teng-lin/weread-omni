@@ -4,9 +4,9 @@
 
 [更新日志](CHANGELOG.md) | [安全政策](SECURITY.md) | [API 端点清单](docs/endpoints.md)
 
-weread-omni 是微信读书的全能智能体技能和非官方 SDK。基于微信读书墨水屏的 API 开发，微信扫码即可用，支持 40 项读写操作，远超官方支持的 6 项只读技能。
+weread-omni 是微信读书的全能智能体技能和非官方 SDK。基于微信读书墨水屏的 API 开发，微信扫码即可用，支持 41 项读写操作，远超官方支持的 6 项只读技能。
 
-40 项操作只有一套实现，三个入口共用：`weread-omni` 命令行，每条命令都能输出 JSON；一套类型完整的 TypeScript SDK；还有仓库自带的 agent skill。
+41 项操作只有一套实现，三个入口共用：`weread-omni` 命令行，每条命令都能输出 JSON；一套类型完整的 TypeScript SDK；还有仓库自带的 agent skill。
 
 这是一个非官方项目，与腾讯及微信读书没有隶属关系，也未获得其认可或支持。
 
@@ -90,13 +90,16 @@ npx skills update weread
 weread-omni search books "三体" --json
 weread-omni book info BOOK_ID --json
 weread-omni book chapters BOOK_ID --json
+weread-omni book search BOOK_ID "要标注的原文" --chapter-uid CHAPTER_UID --json
 weread-omni notes bookmarks BOOK_ID --json
 weread-omni read-data detail --mode annually --json
 weread-omni discover similar BOOK_ID --json
 weread-omni ai ask-book BOOK_ID "这本书的核心论点是什么？" --json
 ```
 
-`book chapters` 返回后续命令需要的 `chapterUid`。
+`book chapters` 返回后续命令需要的 `chapterUid`。`book search` 在指定章节精确查找原文，返回可直接用于划线和批注的 `range`、`markText` 和上下文。它复用已有扫码登录，不需要浏览器或本地 EPUB。书城书使用网页搜索坐标；自传 EPUB 使用阅读接口返回的转换后正文坐标。
+
+写入前确认 `complete: true` 并核对上下文；多次命中不能默认选第一项。原始 EPUB 下标和书城另一版本的坐标不能替代本书的范围。实体字符和内联标签也可能使范围长度大于引用文本长度，必须原样保留 `range`。参数、实现依据与验收见[书内搜索与范围定位](docs/book-search-ranges.md)。
 
 ### 书架、划线与点评
 
@@ -213,6 +216,7 @@ weread-omni library verify --json
 | `weread-omni book detail <bookId> [--count <n>]` | 查看书籍配图，以及同作者、同出版社、同版权方、同分类的书单 |
 | `weread-omni book chapters <bookId>` | 查看目录 |
 | `weread-omni book progress <bookId>` | 查看阅读进度 |
+| `weread-omni book search <bookId> <keyword> --chapter-uid <uid>` | 查找章节原文并返回标注范围 |
 | `weread-omni shelf sync [--count <n>] [--offset <n>] [--full]` | 分页查看精简书架；`--full` 返回原始响应 |
 | `weread-omni shelf add <bookId>` | 加入书架 |
 | `weread-omni shelf delete <bookId> [-y, --yes]` | 从书架删除 |

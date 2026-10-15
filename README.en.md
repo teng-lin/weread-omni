@@ -4,9 +4,9 @@
 
 [Changelog](CHANGELOG.md) | [Security policy](SECURITY.md) | [API Endpoints](docs/endpoints.md)
 
-weread-omni is a full-coverage agent skill and unofficial SDK for WeRead. Sign in by QR code and you get 40 read-and-write operations, far beyond the 6 read-only capabilities the official Skill provides.
+weread-omni is a full-coverage agent skill and unofficial SDK for WeRead. Sign in by QR code and you get 41 read-and-write operations, far beyond the 6 read-only capabilities the official Skill provides.
 
-Those 40 operations have one implementation behind three entry points: the `weread-omni` CLI, where every command can emit JSON; a fully typed TypeScript SDK; and the agent skill bundled in this repo.
+Those 41 operations have one implementation behind three entry points: the `weread-omni` CLI, where every command can emit JSON; a fully typed TypeScript SDK; and the agent skill bundled in this repo.
 
 This project is not affiliated with, endorsed by, or supported by Tencent or WeRead.
 
@@ -99,13 +99,16 @@ Every command supports `--json`. Agents should always request JSON output. Run `
 weread-omni search books "The Three-Body Problem" --json
 weread-omni book info BOOK_ID --json
 weread-omni book chapters BOOK_ID --json
+weread-omni book search BOOK_ID "exact original text" --chapter-uid CHAPTER_UID --json
 weread-omni notes bookmarks BOOK_ID --json
 weread-omni read-data detail --mode annually --json
 weread-omni discover similar BOOK_ID --json
 weread-omni ai ask-book BOOK_ID "What is this book's central argument?" --json
 ```
 
-`book chapters` returns the `chapterUid` used by later commands.
+`book chapters` returns the `chapterUid` used by later commands. `book search` finds exact text in that chapter and returns `range`, `markText`, and context for highlights or private notes. It reuses the selected account without a browser or local EPUB. Catalog books use web search coordinates; uploaded EPUBs use the server-converted chapter HTML.
+
+Require `complete: true` and verify context before writing. Do not choose the first of multiple matches automatically or reuse local EPUB offsets or another edition's ranges. Preserve `range` exactly: inline tags and entities can make its length differ from the visible quote. See [search protocol and validation](docs/book-search-ranges.md).
 
 ### Shelf, highlights, and reviews
 
@@ -233,6 +236,7 @@ This is a command index. All commands accept the global options below; each subc
 | `weread-omni book detail <bookId> [--count <n>]` | Get cover artwork and bounded author, publisher, rightsholder, and category catalogs |
 | `weread-omni book chapters <bookId>` | List the table of contents |
 | `weread-omni book progress <bookId>` | Get reading progress |
+| `weread-omni book search <bookId> <keyword> --chapter-uid <uid>` | Find chapter text with annotation ranges |
 | `weread-omni shelf sync [--count <n>] [--offset <n>] [--full]` | Page through the compact shelf; `--full` returns the raw response |
 | `weread-omni shelf add <bookId>` | Add a book to the shelf |
 | `weread-omni shelf delete <bookId> [-y, --yes]` | Remove a book from the shelf |

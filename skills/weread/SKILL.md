@@ -56,6 +56,7 @@ weread-omni --account "$ACCOUNT" public-accounts read-article 'https://mp.weixin
 weread-omni --account "$ACCOUNT" search books "三体" --json
 weread-omni --account "$ACCOUNT" search books "刘慈欣" --scope 6 --json
 weread-omni --account "$ACCOUNT" book info BOOK_ID --json
+weread-omni --account "$ACCOUNT" book search BOOK_ID "exact original text" --chapter-uid CHAPTER_UID --json
 weread-omni --account "$ACCOUNT" shelf sync --count 20 --json
 weread-omni --account "$ACCOUNT" public-accounts subscriptions --count 20 --json
 weread-omni --account "$ACCOUNT" public-accounts articles MP_WXS_123 --count 20 --json
@@ -152,6 +153,42 @@ imply that the CLI can execute JavaScript challenges or solve CAPTCHAs.
 
 For a question about a book's substance, prefer `ai ask-book`: the server
 answers it directly, with no need to pull anything down first.
+
+## Locate text before annotating
+
+Use `book search BOOK_ID "original text" --chapter-uid CHAPTER_UID --json`
+to obtain new ranges without browser selection. Resolve `CHAPTER_UID` from
+`book chapters`; the printed chapter number is not its UID. This differs from
+`search books --scope 12`, which searches the catalog rather than one chapter.
+
+The result contains `bookId`, `chapterUid`, `keyword`, `source`, `complete`,
+and `matches[]` with `range`, `start`, `end`, `markText`, and `context`.
+`source=reader-search` uses the web search API's match coordinates.
+For uploaded `CB_` EPUBs, `source=reader-html` locates text in the server's
+converted chapter and adds `chapterSha256`. Both use the selected CLI account;
+no browser, browser cookie extraction, or local EPUB is needed. Reads are fresh.
+
+Before an authorized annotation:
+
+1. Require `complete: true`, the intended book/chapter, and the expected original
+   text and context. Search preserves case and normalizes layout whitespace for
+   uploaded EPUBs. Treat zero matches as not found. With multiple matches, choose
+   only when the user's intended context uniquely identifies one; never choose
+   the first automatically. Narrow the quote or ask for the missing context.
+2. Preserve the returned `range` exactly. HTML tags and entities can make
+   `end - start` differ from `markText.length`. Never calculate a WeRead range
+   from raw local EPUB offsets, another edition, or a fixed offset adjustment.
+3. Read `notes bookmarks BOOK_ID --json` before adding a highlight. Reuse a
+   matching chapter/range/text instead of duplicating it. For a new highlight,
+   pass the returned `range` and `markText` to `notes add-bookmark` and read back.
+4. For the requested thought, pass the same chapter/range and `markText` as
+   `--abstract` to `review add --private`. Save its ID immediately and follow the
+   private read-back checks below. Reuse saved receipts when resuming a task.
+
+If the search is incomplete, authentication fails, a chapter is unavailable,
+or its checksum fails, do not write. Report the specific failure. Uploaded TXT,
+PDF, and unsupported chapter formats do not have a verified HTML locator.
+If the book is replaced or its edition changes, locate the quote again.
 
 ## Account changes
 
