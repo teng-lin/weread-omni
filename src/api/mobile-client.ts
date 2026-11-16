@@ -94,6 +94,7 @@ export class MobileApiClient {
     this.#onCredentials = options.onCredentials;
 
     const lazyMobile: MobileTransport = {
+      searchBook: (bookId, keyword, options) => this.mobile.searchBook(bookId, keyword, options),
       call: <T = unknown>(method: string, path: string, callOptions?: MobileCallOptions): Promise<MobileResponse<T>> =>
         this.mobile.call<T>(method, path, callOptions),
     };
@@ -109,6 +110,10 @@ export class MobileApiClient {
     const operationResources = (): MobileResources => {
       let mobile: MobileClient | undefined;
       const pinnedMobile: MobileTransport = {
+        searchBook: (bookId, keyword, options) => {
+          mobile ??= captureClientSession(this).mobile;
+          return mobile.searchBook(bookId, keyword, options);
+        },
         call: <T = unknown>(
           method: string,
           path: string,

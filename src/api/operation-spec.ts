@@ -229,6 +229,17 @@ export const OPERATIONS = {
     parameters: { bookId: bookId() },
     required: ["bookId"],
   }),
+  bookSearch: operation({
+    resource: "book",
+    action: "search",
+    summary: "Find exact text in a chapter and return verified WeRead ranges.",
+    parameters: {
+      bookId: bookId(),
+      keyword: text("Exact original text to locate, with case preserved."),
+      chapterUid: whole("Chapter identifier from book.chapters; not the printed chapter number.", { minimum: 1 }),
+    },
+    required: ["bookId", "keyword", "chapterUid"],
+  }),
   bookDetail: operation({
     resource: "book",
     action: "detail",
@@ -550,6 +561,7 @@ export const OPERATIONS = {
     parameters: {
       bookId: bookId(),
       content: text("The review or thought text to post."),
+      isPrivate: flag("Only visible to yourself when true; omitted uses the server default."),
       type: whole("Review type.", { default: 1, minimum: 0 }),
       star: star("Star rating: 20, 40, 60, 80, or 100 (one to five stars)."),
       range: text("Character range in the chapter this thought annotates."),
@@ -562,10 +574,11 @@ export const OPERATIONS = {
   reviewEdit: operation({
     resource: "review",
     action: "edit",
-    summary: "Edit the text of one of the user's reviews or thoughts.",
+    summary: "Edit the text or private visibility of one of the user's reviews or thoughts.",
     parameters: {
       reviewId: text("Identifier of the review to edit."),
       content: text("Replacement review or thought text."),
+      isPrivate: flag("Only visible to yourself when true; omitted leaves visibility unspecified."),
     },
     required: ["reviewId", "content"],
     gate: "review",

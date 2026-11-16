@@ -6,6 +6,8 @@ import type {
   BookDetailResponse,
   BookInfo,
   BookProgress,
+  BookSearchOptions,
+  BookSearchResponse,
   ChapterInfo,
   ChapterInfoResponse,
   MobileTransport,
@@ -24,6 +26,11 @@ interface ChapterInfosWire {
 /** Public book reads: metadata, detail panels, table of contents, and progress. */
 export function bookModule(mobile: MobileTransport) {
   return {
+    search: (bookId: string, keyword: string, options: BookSearchOptions): Promise<BookSearchResponse> => {
+      assertOperationArguments(OPERATIONS.bookSearch, { bookId, keyword, chapterUid: options?.chapterUid });
+      if (!mobile.searchBook) throw new TypeError("transport does not support book.search");
+      return mobile.searchBook(bookId, keyword, options);
+    },
     info: (bookId: string, options: RequestOptions = {}): Promise<BookInfo> => {
       assertOperationArguments(OPERATIONS.bookInfo, { bookId });
       return mobile

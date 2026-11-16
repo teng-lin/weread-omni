@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { PUBLIC_OPERATIONS } from "../../src/api/operations.js";
 
 describe("PUBLIC_OPERATIONS", () => {
-  it("publishes the exact 10 namespaces and 40 public operations", () => {
+  it("publishes the exact 10 namespaces and 41 public operations", () => {
     expect(PUBLIC_OPERATIONS).toEqual({
       search: ["books", "suggest"],
-      book: ["info", "detail", "chapters", "progress"],
+      book: ["info", "detail", "chapters", "progress", "search"],
       shelf: ["sync", "add", "delete", "pin", "setPrivate", "markFinished", "markReading"],
       publicAccounts: ["subscriptions", "articles", "resolveArticle", "paidContent", "subscribe", "unsubscribe"],
       notes: [
@@ -28,6 +28,6 @@ describe("PUBLIC_OPERATIONS", () => {
       import: ["book"],
     });
 
-    expect(Object.values(PUBLIC_OPERATIONS).flat()).toHaveLength(40);
+    expect(Object.values(PUBLIC_OPERATIONS).flat()).toHaveLength(41);
   });
 });

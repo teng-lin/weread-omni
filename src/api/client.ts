@@ -20,13 +20,7 @@ export interface WeReadClientOptions {
   eink: MobileApiClient;
 }
 
-/**
- * The canonical account client.
- *
- * Every operation runs on the E-Ink backend, which implements the whole canonical surface. The
- * class remains the seam extension clients build on -- it owns the session provider that lets a
- * multi-call operation pin one mobile session -- rather than a routing table over several backends.
- */
+/** 统一账号客户端。书内定位复用同一账号调用网页阅读接口；多次请求始终绑定同一移动会话。 */
 export class WeReadClient implements CanonicalClient {
   readonly search: CanonicalClient["search"];
   readonly book: CanonicalBook;

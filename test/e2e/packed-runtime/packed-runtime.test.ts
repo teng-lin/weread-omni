@@ -191,7 +191,7 @@ describe("packed CLI", () => {
     const expected = Object.entries(PUBLIC_OPERATIONS).flatMap(([resource, actions]) =>
       actions.map((action) => `${kebab(resource)} ${kebab(action)}`),
     );
-    expect(expected).toHaveLength(40);
+    expect(expected).toHaveLength(41);
 
     const leaves = new Set<string>();
     for (const resource of new Set(expected.map((leaf) => leaf.split(" ")[0] as string))) {

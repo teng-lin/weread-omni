@@ -1,6 +1,6 @@
 export const PUBLIC_OPERATIONS = {
   search: ["books", "suggest"],
-  book: ["info", "detail", "chapters", "progress"],
+  book: ["info", "detail", "chapters", "progress", "search"],
   shelf: ["sync", "add", "delete", "pin", "setPrivate", "markFinished", "markReading"],
   publicAccounts: ["subscriptions", "articles", "resolveArticle", "paidContent", "subscribe", "unsubscribe"],
   notes: [

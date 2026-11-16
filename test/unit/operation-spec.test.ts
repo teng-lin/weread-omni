@@ -32,7 +32,7 @@ describe("operation spec", () => {
     // Non-canonical entries are enumerated, not merely tolerated: a fourth one has to be added here.
     expect(projected.filter((name) => NON_CANONICAL.has(name)).sort()).toEqual([...NON_CANONICAL].sort());
     expect(new Set(projected).size).toBe(projected.length);
-    expect(canonical).toHaveLength(40);
+    expect(canonical).toHaveLength(41);
   });
 
   it("declares every required parameter, with a description on all of them", () => {

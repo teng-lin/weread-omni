@@ -2,14 +2,14 @@
 
 > **Target Binary:** `weread-eink-2.1.2.apk` (13 DEX files, 315,090 functions, 287,321 unique strings)
 
-> **Reference:** `weread-omni` SDK (40 high-level operations)
+> **Reference:** `weread-omni` SDK (41 high-level operations)
 
 ## 1. Executive Summary & Coverage Matrix
 
 > [!NOTE]
-> **Operations vs. Endpoints:** `README.md` documents **40 user-facing operations** across the CLI, SDK, and Agent Skill.
+> **Operations vs. Endpoints:** `README.md` documents **41 user-facing operations** across the CLI, SDK, and Agent Skill.
 > Several operations share common underlying API endpoints (e.g., `shelf.markFinished` and `shelf.markReading` both hit `/book/markstatus`; `shelf.add` and `publicAccounts.subscribe` both hit `/shelf/add`).
-> Across all 40 operations, `weread-omni` utilizes **35 unique HTTP endpoints**: **30** originate from the Eink 2.1.2 client cataloged below, and **5** originate from modern Web/Mobile features (`/ai/chatv2`, `/ai/chat/suggest`, `/readdata/detail`, `/shelf/top`, `/user/allNotes`).
+> The original 40 operations use **35 unique HTTP endpoints**: **30** originate from the Eink 2.1.2 client cataloged below, and **5** originate from modern Web/Mobile features (`/ai/chatv2`, `/ai/chat/suggest`, `/readdata/detail`, `/shelf/top`, `/user/allNotes`).
 
 | Functional Domain | Total Eink Endpoints | Endpoints Used by `weread-omni` |
 | :--- | :---: | :---: |
@@ -29,9 +29,11 @@
 | **Utility, Dictionary & Activities** | 4 | 0 |
 | **TOTAL** | **184** | **30** |
 
-## 2. Operations vs. Endpoints Mapping (All 40 Operations)
+> The local `book.search` extension adds the authenticated web reader/search endpoints described in [book-search-ranges.md](book-search-ranges.md); they are outside the historical E-Ink 2.1.2 inventory below.
 
-Below is the complete reconciliation between the **40 high-level operations** documented in `README.md` and their underlying HTTP endpoints:
+## 2. Operations vs. Endpoints Mapping (All 41 Operations)
+
+Below is the complete reconciliation between the **41 high-level operations** documented in `README.md` and their underlying HTTP endpoints:
 
 | # | Resource | Operation / Method in `README.md` | HTTP Verb | Endpoint Path | Origin / Binary |
 | :---: | :--- | :--- | :---: | :--- | :--- |
@@ -75,6 +77,7 @@ Below is the complete reconciliation between the **40 high-level operations** do
 | 38 | `ai` | `ai.askBook(input)` | POST | `/ai/chatv2` | Web / Mobile |
 | 39 | `ai` | `ai.suggest(input)` | POST | `/ai/chat/suggest` | Web / Mobile |
 | 40 | `import` | `import.book({ name, path/bytes })` | GET + POST | `/cos/getcredential` + `/cos/notify` | Eink 2.1.2 |
+| 41 | `book` | `book.search(bookId, keyword, { chapterUid })` | POST + GET | `/web/login/session/init`, `/web/book/search_v2`, `/web/reader/{id}`, `/web/book/chapter/e_0`, `e_1`, `e_3` | Web reader |
 
 ## 3. Infrastructure & Base Hosts
 

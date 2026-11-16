@@ -112,11 +112,11 @@ export type PublicApiAssertions = [
   Expect<WeReadClient extends CanonicalClient ? true : false>,
   Expect<Equal<ConstructorParameters<typeof WeReadClient>, [options: { eink: MobileApiClient }]>>,
   Expect<Equal<keyof MobileApiClient, MobileClientKeys>>,
-  Expect<Equal<keyof MobileApiClient["mobile"], "vid" | "call" | "callRaw">>,
+  Expect<Equal<keyof MobileApiClient["mobile"], "vid" | "call" | "callRaw" | "searchBook">>,
   Expect<Equal<Parameters<MobileApiClient["mobile"]["call"]>[2], MobileCallOptions | undefined>>,
   Expect<Equal<Parameters<MobileApiClient["mobile"]["callRaw"]>[2], RawMobileCallOptions | undefined>>,
   Expect<Equal<keyof WeReadClient["search"], "books" | "suggest">>,
-  Expect<Equal<keyof WeReadClient["book"], "info" | "detail" | "chapters" | "progress">>,
+  Expect<Equal<keyof WeReadClient["book"], "info" | "detail" | "chapters" | "progress" | "search">>,
   Expect<
     Equal<
       keyof WeReadClient["shelf"],

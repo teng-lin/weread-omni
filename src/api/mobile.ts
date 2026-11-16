@@ -10,6 +10,8 @@ import {
   readResponseBody,
 } from "./response-body.js";
 import { requestSignal } from "./signal.js";
+import type { BookSearchOptions, BookSearchResponse } from "./types.js";
+import { WebReader } from "./web-reader.js";
 
 export interface TokenProvider {
   /**
@@ -209,6 +211,11 @@ export class MobileClient {
 
   async vid(signal?: AbortSignal): Promise<string> {
     return (await this.tokenManager.get(false, signal)).vid;
+  }
+
+  /** 复用当前账号的令牌，网页会话只保留在本次搜索的内存中。 */
+  searchBook(bookId: string, keyword: string, options: BookSearchOptions): Promise<BookSearchResponse> {
+    return new WebReader(this.tokenManager, this.fetchImpl, this.timeoutMs).search(bookId, keyword, options);
   }
 
   /**
