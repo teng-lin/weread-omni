@@ -1,19 +1,36 @@
 import { Parser } from "htmlparser2";
 import type { BookTextMatch } from "./types.js";
 
-const BLOCKS = new Set(["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "tr", "section", "article", "br", "hr"]);
+const BLOCKS = new Set([
+  "p",
+  "div",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "li",
+  "tr",
+  "td",
+  "th",
+  "section",
+  "article",
+  "br",
+  "hr",
+]);
 const EXCLUDED = new Set(["head", "script", "style", "noscript", "template", "svg"]);
 const whitespace = /\s/u;
 
 /** 保留服务端 HTML 的 UTF-16 坐标；不能先清理 HTML 再用纯文本下标。 */
 export function locateInChapterHtml(html: string, keyword: string): BookTextMatch[] {
-  let text = "";
+  const characters: string[] = [];
   const starts: number[] = [];
   const ends: number[] = [];
   const skipped: boolean[] = [];
   let inBody = false;
   const boundary = () => {
-    text += "\0";
+    characters.push("\0");
     starts.push(-1);
     ends.push(-1);
   };
@@ -40,13 +57,13 @@ export function locateInChapterHtml(html: string, keyword: string): BookTextMatc
         const end = parser.endIndex + 1;
         const literal = end - start === value.length && html.slice(start, end) === value;
         for (let index = 0; index < value.length; index++) {
-          const char = whitespace.test(value[index] ?? "") ? " " : value[index];
+          const char = whitespace.test(value[index] ?? "") ? " " : (value[index] ?? "");
           const from = literal ? start + index : start;
           const to = literal ? from + 1 : end;
-          if (char === " " && text.endsWith(" ")) {
+          if (char === " " && characters.at(-1) === " ") {
             ends[ends.length - 1] = to;
           } else {
-            text += char;
+            characters.push(char);
             starts.push(from);
             ends.push(to);
           }
@@ -56,6 +73,7 @@ export function locateInChapterHtml(html: string, keyword: string): BookTextMatc
     { decodeEntities: true },
   );
   parser.end(html);
+  const text = characters.join("");
   const needle = keyword.replace(/\s+/gu, " ").trim();
   if (!needle || needle.includes("\0")) throw new TypeError("keyword must contain searchable text");
   const matches: BookTextMatch[] = [];

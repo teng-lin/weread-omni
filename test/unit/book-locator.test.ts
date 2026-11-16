@@ -37,4 +37,24 @@ describe("章节原文坐标", () => {
     expect(encodeReaderId(15)).toBe("9bf32f301f9bf31c7ff0a60");
     expect(() => decodeChapterParts(["broken"])).toThrow("checksum");
   });
+
+  it.each(["td", "th"])("不跨相邻 %s 单元格拼接文字，保留格内原文范围", (tag) => {
+    const html = `<body><table><tr><${tag}>not</${tag}><${tag}>joined</${tag}></tr></table></body>`;
+    expect(locateInChapterHtml(html, "notjoined")).toEqual([]);
+    expect(locateInChapterHtml(html, "not joined")).toEqual([]);
+    const start = html.indexOf("joined");
+    expect(locateInChapterHtml(html, "joined")).toMatchObject([{ range: `${start}-${start + 6}`, markText: "joined" }]);
+  });
+
+  it("大章节的空白归一化不反复复制已解析文字", () => {
+    const html = `<body><p>${"word ".repeat(100_000)}A &amp; B <em>bright</em> idea</p></body>`;
+    const started = performance.now();
+    const matches = locateInChapterHtml(html, "A & B bright idea");
+    const elapsed = performance.now() - started;
+    const start = html.indexOf("A &amp;");
+    const end = html.indexOf("</p>");
+    expect(matches).toMatchObject([{ range: `${start}-${end}`, markText: "A & B bright idea" }]);
+    // 留出 CI 余量；旧实现解析这段约 500 KB 的正文需要十余秒。
+    expect(elapsed).toBeLessThan(3_000);
+  });
 });
