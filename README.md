@@ -302,7 +302,7 @@ const notes = await weread.notes.mine("BOOK_ID", { count: 20 });
 | 资源 | 方法 |
 | --- | --- |
 | `search` | `books(keyword, options?)`、`suggest(keyword, options?)` |
-| `book` | `info(bookId)`、`detail(bookId, options?)`、`chapters(bookId)`、`progress(bookId)` |
+| `book` | `info(bookId)`、`detail(bookId, options?)`、`chapters(bookId)`、`progress(bookId)`、`search(bookId, keyword, { chapterUid })` |
 | `shelf` | `sync()`、`add(bookId)`、`delete(bookId)`、`pin(bookId, top?)`、`setPrivate(bookId, secret?)`、`markFinished(bookId, finished?)`、`markReading(bookId, reading?)` |
 | `publicAccounts` | `subscriptions(options?)`、`articles(accountId, options?)`、`resolveArticle(docUrl, options?)`、`paidContent(docUrl, options?)`、`subscribe(accountId)`、`unsubscribe(accountId)` |
 | `notes` | `notebooks(options?)`、`recent(options?)`、`bookmarks(bookId, options?)`、`mine(bookId, options?)`、`best(bookId, options?)`、`readReviews(bookId, chapterUid, reviews, options?)`、`underlines(bookId, chapterUid, options?)`、`addBookmark(input)`、`updateBookmark(input)`、`removeBookmark(bookmarkId, options?)` |

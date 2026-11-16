@@ -85,8 +85,10 @@
 
 每项严格执行：
 
-1. 没有匹配划线时，保存写入意图后执行 `notes add-bookmark`。保存响应及 bookmarkId，
-   读取划线列表确认书籍、章节、range、markText。已有划线直接复用。
+1. 没有匹配划线时，保存写入意图后执行 `notes add-bookmark`，保存完整响应。
+   响应不一定包含 bookmarkId：有 ID 时按 ID 回读，并核对书籍、章节、range、markText；
+   没有 ID 时，只有 bookId、chapterUid、range、markText 恰好对应一条记录，才算验证成功。
+   无法唯一确认时停止写队列，标记 unresolved 或 conflict，不重试写入。已有匹配划线直接复用。
 2. 有 reviewId 时，先 `review single`：内容与目标完全相同且私密则复用；需要编辑时，
    将当前完整正文哈希与计划的旧正文哈希比较。不同则标记 conflict，防止覆盖用户修改。
 3. 保存批注写入意图（itemId、动作、计划哈希、目标正文哈希、已有 ID），再调用：
@@ -98,7 +100,7 @@
    `abstract`、完整 `content` 和 `isPrivate === 1`。全部满足才标记 verified。
 
 调用进程时使用参数数组（如 Python subprocess.run([...])），正文不拼接进 shell 命令。
-写入失败、返回内容非 JSON、缺 ID、验证不符，均保存证据并停止写队列；按下节处理。
+写入失败、返回内容非 JSON、批注响应缺 ID、验证不符，均保存证据并停止写队列；按下节处理。
 
 ## 5. 故障与恢复
 
